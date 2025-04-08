@@ -1,0 +1,35 @@
+{
+  "name": "orca-liquidity-agent",
+  "version": "0.1.0",
+  "description": "Autonomous Orca Liquidity Agent for Solana",
+  "module": "src/server.ts",
+  "type": "module",
+  "scripts": {
+    "start": "bun run src/main.ts",
+    "start:server": "bun run src/server.ts",
+    "build": "bun build src/main.ts --outdir ./dist",
+    "lint": "eslint --ext .ts src/",
+    "format": "prettier --write \"src/**/*.ts\"",
+    "test": "bun test",
+    "check:devnet": "bun run src/scripts/checkDevnet.ts"
+  },
+  "dependencies": {
+    "@orca-so/common-sdk": "^0.3.3",
+    "@orca-so/whirlpools-sdk": "^0.11.0",
+    "@project-serum/anchor": "^0.26.0",
+    "@solana/spl-token": "^0.3.8",
+    "@solana/web3.js": "^1.87.6",
+    "bs58": "^5.0.0",
+    "decimal.js": "^10.4.3",
+    "dotenv": "^16.3.1",
+    "hono": "^3.11.7"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "@typescript-eslint/eslint-plugin": "^6.13.2",
+    "@typescript-eslint/parser": "^6.13.2",
+    "eslint": "^8.55.0",
+    "prettier": "^3.1.0",
+    "typescript": "^5.3.3"
+  }
+}
