@@ -2,10 +2,10 @@ import { PublicKey } from '@solana/web3.js';
 import Decimal from 'decimal.js';
 import { ENV } from './config/env';
 import { fetchWhirlpoolData, fetchPositionDetails } from './services/orca';
-import { getWalletSolBalance, getTokenBalance } from './services/solana';
+import { getWalletSolBalance } from './services/solana';
 import { openPosition, addLiquidity, claimFees, removeLiquidity, closePosition } from './services/liquidityManager';
 import { positionState } from './services/positionState';
-import { wrapSol, unwrapSol, getWsolBalance } from './services/tokenUtils';
+import { wrapSol, unwrapSol, getWsolBalance, getTokenBalanceWithRetry } from './services/tokenUtils';
 import { positionMonitor } from './services/positionMonitor';
 import { checkPositionRangeStatus, PositionRangeStatus, formatFeeAmount } from './utils/positionUtils';
 import * as logger from './utils/logger';
@@ -24,6 +24,33 @@ async function cmdOpenPosition() {
     if (!ENV.USDC_SOL_WHIRLPOOL_ADDRESS) {
       throw new Error('USDC_SOL_WHIRLPOOL_ADDRESS is not set in environment variables');
     }
+    
+    // Check wallet balances first
+    const solBalance = await getWalletSolBalance();
+    const wsolBalance = await getWsolBalance();
+    
+    // Check if USDC_MINT is defined
+    if (!ENV.USDC_MINT) {
+      logger.warn('USDC_MINT is not defined in environment variables');
+      throw new Error('USDC_MINT is required but not set in environment variables');
+    }
+    
+    // Use our new retry-enabled function to get USDC balance
+    logger.info('Fetching USDC balance with retry logic...');
+    const usdcBalance = await getTokenBalanceWithRetry(new PublicKey(ENV.USDC_MINT));
+    
+    logger.info(`Current balances:\n- SOL: ${solBalance}\n- WSOL: ${wsolBalance}\n- USDC: ${usdcBalance || 0}`);
+    
+    // We need USDC to open a position
+    if (!usdcBalance || usdcBalance === 0) {
+      logger.warn('No USDC available. You need USDC to open a SOL/USDC position.');
+      logger.warn('Please acquire some USDC before opening a position.');
+      throw new Error('Insufficient USDC balance. Please acquire USDC before opening a position.');
+    }
+    
+    // Skip SOL wrapping for now since we have USDC
+    // We'll handle liquidity addition in a separate step
+    logger.info('Proceeding with position opening without wrapping SOL...');
     
     // Get the whirlpool address
     const whirlpoolAddress = new PublicKey(ENV.USDC_SOL_WHIRLPOOL_ADDRESS);
@@ -279,7 +306,7 @@ async function cmdRunFullLifecycle() {
     // Check wallet balances
     const solBalance = await getWalletSolBalance();
     const wsolBalance = await getWsolBalance();
-    const usdcBalance = await getTokenBalance(ENV.USDC_MINT!);
+    const usdcBalance = await getTokenBalanceWithRetry(ENV.USDC_MINT!);
     
     logger.info('Wallet balances:');
     logger.info(`- SOL: ${solBalance}`);
@@ -347,7 +374,7 @@ async function main() {
     // Check wallet balances at startup
     const solBalance = await getWalletSolBalance();
     const wsolBalance = await getWsolBalance();
-    const usdcBalance = await getTokenBalance(ENV.USDC_MINT!);
+    const usdcBalance = await getTokenBalanceWithRetry(ENV.USDC_MINT!);
     
     logger.info('Wallet balances:');
     logger.info(`- SOL: ${solBalance}`);

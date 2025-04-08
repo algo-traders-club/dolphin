@@ -1,14 +1,82 @@
-import { Connection, Keypair, PublicKey } from '@solana/web3.js';
-import { AnchorProvider, Wallet } from '@project-serum/anchor';
+import { Connection, Keypair, PublicKey, Transaction, VersionedTransaction } from '@solana/web3.js';
+import { AnchorProvider, Wallet as AnchorWallet } from '@project-serum/anchor';
 import bs58 from 'bs58';
+import nacl from 'tweetnacl';
 import { ENV } from '../config/env';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as logger from '../utils/logger';
 
+/**
+ * Custom wallet implementation that works with both @project-serum/anchor and Orca SDK
+ */
+class CustomWallet implements AnchorWallet {
+  // The payer property is required by NodeWallet interface
+  readonly payer: Keypair;
+
+  constructor(keypair: Keypair) {
+    this.payer = keypair;
+  }
+
+  get publicKey(): PublicKey {
+    return this.payer.publicKey;
+  }
+
+  async signTransaction(tx: any): Promise<any> {
+    // Handle different transaction types
+    try {
+      // Check if it's a VersionedTransaction
+      if (tx.version !== undefined) {
+        tx.sign([this.payer]);
+        return tx;
+      }
+      
+      // Check if it's a regular Transaction with partialSign method
+      if (typeof tx.partialSign === 'function') {
+        tx.partialSign(this.payer);
+        return tx;
+      }
+      
+      // Check if it's a regular Transaction with sign method
+      if (typeof tx.sign === 'function') {
+        tx.sign(this.payer);
+        return tx;
+      }
+      
+      // Handle Orca SDK transaction objects
+      // These might have a different structure
+      if (tx.message && tx.addSignature) {
+        // Use nacl to sign with the private key directly
+        const msgBytes = tx.message.serialize();
+        const signData = this.payer.secretKey.slice(0, 32);
+        const signature = nacl.sign.detached(msgBytes, signData);
+        tx.addSignature(this.payer.publicKey, Buffer.from(signature));
+        return tx;
+      }
+      
+      // Last resort: just add the keypair to the transaction's signers
+      if (tx.signers) {
+        tx.signers.push(this.payer);
+        return tx;
+      }
+      
+      // If we can't handle it, log the issue
+      console.error('Unknown transaction type:', tx);
+      throw new Error('Unable to sign transaction: unknown format');
+    } catch (error) {
+      console.error('Error signing transaction:', error);
+      throw error;
+    }
+  }
+
+  async signAllTransactions(txs: any[]): Promise<any[]> {
+    return Promise.all(txs.map(tx => this.signTransaction(tx)));
+  }
+}
+
 // Singleton instances
 let connection: Connection | null = null;
-let wallet: Wallet | null = null;
+let wallet: CustomWallet | null = null;
 let provider: AnchorProvider | null = null;
 
 /**
@@ -27,7 +95,7 @@ export function getConnection(): Connection {
  * Get the agent's wallet from either wallet.json file or environment variables
  * @returns Anchor-compatible Wallet object
  */
-export function getWallet(): Wallet {
+export function getWallet(): AnchorWallet {
   if (!wallet) {
     try {
       let keypair: Keypair;
@@ -71,8 +139,8 @@ export function getWallet(): Wallet {
         throw new Error('No wallet found. Please provide wallet.json or WALLET_PRIVATE_KEY in .env');
       }
       
-      // Create an Anchor-compatible wallet
-      wallet = new Wallet(keypair);
+      // Create our custom wallet that handles both transaction types
+      wallet = new CustomWallet(keypair);
       
       // Log the public key for verification (never log the private key)
       logger.info(`Agent wallet loaded with public key: ${wallet.publicKey.toString()}`);

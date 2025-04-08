@@ -1,4 +1,4 @@
-import { Keypair, PublicKey, Transaction } from '@solana/web3.js';
+import { Keypair, PublicKey, Transaction, SystemProgram, SYSVAR_RENT_PUBKEY } from '@solana/web3.js';
 import type { TransactionError } from '@solana/web3.js';
 import { BN } from '@project-serum/anchor';
 import { PDAUtil, PriceMath, TickUtil, WhirlpoolContext } from '@orca-so/whirlpools-sdk';
@@ -9,8 +9,15 @@ import { getConnection, getWallet } from './solana';
 import { positionState } from './positionState';
 import * as logger from '../utils/logger';
 
+// Import SPL token constants
+import { TOKEN_PROGRAM_ID as SPL_TOKEN_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID } from '@solana/spl-token';
+import { getAssociatedTokenAddress } from '@solana/spl-token';
+
 // Default slippage tolerance (1%)
 const DEFAULT_SLIPPAGE = 0.01;
+
+// Constants
+const TOKEN_PROGRAM_ID = new PublicKey('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA');
 
 /**
  * Open a new liquidity position in a Whirlpool
@@ -36,61 +43,132 @@ export async function openPosition(
     const pool = await client.getPool(whirlpoolAddress);
     const poolData = pool.getData();
     
-    // Calculate tick indices from prices
-    const tickLowerIndex = PriceMath.priceToInitializableTickIndex(
-      lowerPrice,
-      poolData.tickSpacing,
-      poolData.tokenMintA,
-      poolData.tokenMintB
+    // Get token info from the pool
+    const poolTokenAInfo = await pool.getTokenAInfo();
+    const poolTokenBInfo = await pool.getTokenBInfo();
+    const tokenA = poolTokenAInfo.mint;
+    const tokenB = poolTokenBInfo.mint;
+    
+    logger.info(`Token A: ${tokenA.toString()}, decimals: ${poolTokenAInfo.decimals}`);
+    logger.info(`Token B: ${tokenB.toString()}, decimals: ${poolTokenBInfo.decimals}`);
+    
+    // Get the current price for reference
+    const currentPrice = PriceMath.tickIndexToPrice(
+      poolData.tickCurrentIndex,
+      poolTokenAInfo.decimals,
+      poolTokenBInfo.decimals
     );
     
-    const tickUpperIndex = PriceMath.priceToInitializableTickIndex(
-      upperPrice,
-      poolData.tickSpacing,
-      poolData.tokenMintA,
-      poolData.tokenMintB
+    logger.info(`Current pool price: ${currentPrice.toString()} token B per token A`);
+    
+    // For SOL/USDC, our prices are in USDC per SOL, but we need to convert to SOL per USDC
+    // We need to invert the prices and swap lower/upper because of the direction
+    const invertedLowerPrice = new Decimal(1).div(upperPrice); // Note the inversion of upper/lower
+    const invertedUpperPrice = new Decimal(1).div(lowerPrice); // Note the inversion of upper/lower
+    
+    logger.info(`Inverted price range: ${invertedLowerPrice.toString()} to ${invertedUpperPrice.toString()} token A per token B`);
+    
+    // Calculate tick indices from the inverted prices
+    const tickLower = TickUtil.getInitializableTickIndex(
+      PriceMath.priceToTickIndex(
+        invertedLowerPrice,
+        poolTokenAInfo.decimals,
+        poolTokenBInfo.decimals
+      ),
+      poolData.tickSpacing
     );
     
-    // Ensure ticks are properly spaced
-    const alignedTickLower = TickUtil.getInitializableTickIndex(tickLowerIndex, poolData.tickSpacing);
-    const alignedTickUpper = TickUtil.getInitializableTickIndex(tickUpperIndex, poolData.tickSpacing);
+    const tickUpper = TickUtil.getInitializableTickIndex(
+      PriceMath.priceToTickIndex(
+        invertedUpperPrice,
+        poolTokenAInfo.decimals,
+        poolTokenBInfo.decimals
+      ),
+      poolData.tickSpacing
+    );
     
-    logger.debug(`Tick indices: ${alignedTickLower} to ${alignedTickUpper}`);
+    logger.info(`Tick indices: ${tickLower} to ${tickUpper}`);
     
     // Generate a new keypair for the position mint
     const positionMintKeypair = Keypair.generate();
     
-    // Build the transaction to open a position
-    const { transaction, positionAddress } = await pool.openPositionTx({
-      tickLowerIndex: alignedTickLower,
-      tickUpperIndex: alignedTickUpper,
-      owner: wallet.publicKey,
-      positionMintKeypair,
-    });
+    // Get the position PDA
+    const positionPda = PDAUtil.getPosition(
+      client.getContext().program.programId,
+      positionMintKeypair.publicKey
+    );
+    const positionAddress = positionPda.publicKey;
     
-    // Sign and send the transaction
-    transaction.feePayer = wallet.publicKey;
-    transaction.recentBlockhash = (await connection.getLatestBlockhash()).blockhash;
+    // Create a minimal liquidity input (required by the SDK)
+    const liquidityInput = {
+      liquidityAmount: new BN(1),  // Minimal amount
+      tokenMaxA: new BN(1),       // Minimal amount
+      tokenMaxB: new BN(1)        // Minimal amount
+    };
     
-    // Sign with both the wallet and the position mint keypair
-    transaction.partialSign(positionMintKeypair);
-    const signedTx = await wallet.signTransaction(transaction);
+    logger.info('Creating position with minimal liquidity to satisfy SDK requirements');
     
-    const txId = await connection.sendRawTransaction(signedTx.serialize());
-    await connection.confirmTransaction(txId, 'confirmed');
+    // Use the openPosition method from the Whirlpool object
+    // This handles all the account creation and transaction building
+    const { tx, positionMint } = await pool.openPosition(
+      tickLower,
+      tickUpper,
+      liquidityInput,
+      wallet.publicKey,  // Owner
+      wallet.publicKey,  // Funder
+      positionMintKeypair.publicKey
+    );
+    
+    // Add the position mint keypair as a signer
+    tx.addSigner(positionMintKeypair);
+    
+    // Execute the transaction
+    logger.info('Executing transaction to open position...');
+    
+    // Variable to store transaction ID
+    let txId: string;
+    
+    try {
+      // Build the transaction but don't execute yet
+      const builtTx = await tx.build();
+      
+      // Get a fresh blockhash right before sending
+      const latestBlockhash = await connection.getLatestBlockhash('finalized');
+      
+      // Execute with the fresh blockhash
+      txId = await tx.buildAndExecute();
+      
+      logger.info(`Transaction sent with ID: ${txId}`);
+      
+      // Wait for confirmation with a shorter timeout
+      const confirmationStatus = await connection.confirmTransaction({
+        signature: txId,
+        blockhash: latestBlockhash.blockhash,
+        lastValidBlockHeight: latestBlockhash.lastValidBlockHeight
+      }, 'processed'); // Use 'processed' instead of 'confirmed' for faster confirmation
+      
+      if (confirmationStatus.value.err) {
+        throw new Error(`Transaction failed: ${confirmationStatus.value.err}`);
+      }
+      
+      logger.info(`Transaction confirmed with ID: ${txId}`);
+    } catch (txError) {
+      logger.error('Transaction execution failed:', txError);
+      throw new Error(`Transaction failed: ${(txError as Error).message}`);
+    }
     
     logger.info(`Position opened successfully!`);
-    logger.transaction(txId, 'Position opened');
+    logger.info(`Transaction ID: ${txId}`);
     logger.info(`Position Address: ${positionAddress.toString()}`);
-    logger.info(`Position Mint: ${positionMintKeypair.publicKey.toString()}`);
+    logger.info(`Position Mint: ${positionMint.toString()}`);
     
     // Store the position details
     positionState.setActivePosition({
       positionAddress,
-      positionMint: positionMintKeypair.publicKey,
+      positionMint,
       whirlpoolAddress,
-      tickLowerIndex: alignedTickLower,
-      tickUpperIndex: alignedTickUpper,
+      tickLowerIndex: tickLower,
+      tickUpperIndex: tickUpper,
       liquidity: new BN(0),
       createdAt: new Date(),
       // Initialize the new fields for position monitoring
@@ -99,9 +177,10 @@ export async function openPosition(
       lastUpdatedAt: new Date(),
     });
     
+    // Return the position details
     return {
       positionAddress,
-      positionMint: positionMintKeypair.publicKey,
+      positionMint,
       txId,
     };
   } catch (error) {

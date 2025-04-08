@@ -26,25 +26,33 @@ export function getOrcaClient(): ReturnType<typeof buildWhirlpoolClient> {
     }
     
     try {
-      // Using the simplest approach with type assertions to bypass dependency version issues
       const connection = getConnection();
-      const wallet = getProvider().wallet;
       
-      // Create a context configuration object
-      const contextConfig = {
-        connection,
-        wallet: {
-          publicKey: wallet.publicKey,
-          signTransaction: wallet.signTransaction.bind(wallet),
-          signAllTransactions: wallet.signAllTransactions.bind(wallet)
-        },
-        programId: new PublicKey(ENV.WHIRLPOOL_PROGRAM_ID)
+      // Create a wallet adapter that works with the Orca SDK
+      const provider = getProvider();
+      const walletAdapter = {
+        publicKey: provider.wallet.publicKey,
+        signTransaction: provider.wallet.signTransaction.bind(provider.wallet),
+        signAllTransactions: provider.wallet.signAllTransactions.bind(provider.wallet)
       };
       
-      // Use type assertion to bypass TypeScript errors from version mismatches
-      orcaClient = buildWhirlpoolClient(contextConfig as any);
+      // Determine if we're using devnet or mainnet based on the RPC URL
+      const isDevnet = ENV.SOLANA_RPC_URL.includes('devnet');
+      const networkType = isDevnet ? 'devnet' : 'mainnet';
       
-      logger.info(`Orca Whirlpool Client initialized on ${ENV.NETWORK === 'mainnet' ? 'mainnet' : 'devnet'}`);
+      logger.info(`Initializing Orca Whirlpool Client on ${networkType}`);
+      
+      // Create the WhirlpoolContext using the static from method
+      const ctx = WhirlpoolContext.from(
+        connection,
+        walletAdapter as any, // Cast to any to bypass type checking issues
+        new PublicKey(ENV.WHIRLPOOL_PROGRAM_ID)
+      );
+      
+      // Build the client with the context
+      orcaClient = buildWhirlpoolClient(ctx);
+      
+      logger.info(`Orca Whirlpool Client initialized on ${networkType}`);
     } catch (error) {
       logger.error('Failed to initialize Orca client:', error);
       throw new Error(`Failed to initialize Orca client: ${(error as Error).message}`);

@@ -131,28 +131,82 @@ export async function unwrapSol(): Promise<string> {
 }
 
 /**
+ * Helper function to retry a function with exponential backoff
+ * @param fn Function to retry
+ * @param maxRetries Maximum number of retries
+ * @param initialDelay Initial delay in ms
+ * @returns The result of the function
+ */
+async function withRetry<T>(
+  fn: () => Promise<T>,
+  maxRetries = 5,
+  initialDelay = 500
+): Promise<T> {
+  let retries = 0;
+  let delay = initialDelay;
+  
+  while (true) {
+    try {
+      return await fn();
+    } catch (error) {
+      if (retries >= maxRetries) {
+        throw error;
+      }
+      
+      // Check if it's a rate limit error
+      const isRateLimitError = 
+        error instanceof Error && 
+        (error.message.includes('429') || error.message.includes('Too Many Requests'));
+      
+      if (!isRateLimitError) {
+        throw error;
+      }
+      
+      retries++;
+      console.log(`Rate limit hit. Retrying after ${delay}ms delay... (${retries}/${maxRetries})`);
+      await new Promise(resolve => setTimeout(resolve, delay));
+      delay *= 2; // Exponential backoff
+    }
+  }
+}
+
+/**
+ * Get token balance with retry logic
+ * @param mint The token mint address
+ * @returns The token balance
+ */
+export async function getTokenBalanceWithRetry(mint: PublicKey): Promise<number> {
+  const connection = getConnection();
+  const wallet = getWallet();
+  
+  return withRetry(async () => {
+    // Get the associated token account
+    const ata = await getAssociatedTokenAddress(mint, wallet.publicKey);
+    
+    try {
+      // Add a small delay to avoid rate limiting
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      const tokenBalance = await connection.getTokenAccountBalance(ata);
+      const decimals = tokenBalance.value.decimals;
+      return Number(tokenBalance.value.amount) / Math.pow(10, decimals);
+    } catch (e) {
+      // If the error is not a rate limit error and the ATA doesn't exist, return 0
+      if (e instanceof Error && e.message.includes('could not find account')) {
+        return 0;
+      }
+      throw e;
+    }
+  });
+}
+
+/**
  * Get the WSOL balance for the agent's wallet
  * @returns The WSOL balance
  */
 export async function getWsolBalance(): Promise<number> {
   try {
-    const connection = getConnection();
-    const wallet = getWallet();
-    
-    // Get the associated token account for WSOL
-    const wsolAta = await getAssociatedTokenAddress(
-      NATIVE_MINT,
-      wallet.publicKey
-    );
-    
-    // Check if the WSOL ATA exists
-    try {
-      const tokenBalance = await connection.getTokenAccountBalance(wsolAta);
-      return Number(tokenBalance.value.amount) / 1e9; // Convert lamports to SOL
-    } catch (e) {
-      // ATA doesn't exist or has no balance
-      return 0;
-    }
+    return await getTokenBalanceWithRetry(NATIVE_MINT);
   } catch (error) {
     console.error('Error getting WSOL balance:', error);
     return 0;

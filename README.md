@@ -1,16 +1,18 @@
-# Autonomous Orca Liquidity Agent (MVP)
+# Autonomous Orca Liquidity Agent
 
-A TypeScript-based automated agent for managing liquidity positions in Orca Whirlpools on Solana Devnet. This MVP demonstrates the full lifecycle of creating, managing, and closing a liquidity position.
+A TypeScript-based automated agent for managing liquidity positions in Orca Whirlpools on Solana (both Mainnet and Devnet). This application demonstrates the full lifecycle of creating, managing, and closing a liquidity position.
 
 ## Features
 
-- Connect to Solana Devnet and Orca Whirlpools
+- Connect to Solana Mainnet/Devnet and Orca Whirlpools
 - Open liquidity positions with customizable price ranges
 - Add liquidity to positions (with SOL/WSOL handling)
 - Claim fees from positions
 - Remove liquidity from positions
 - Close positions
+- Position monitoring with status updates
 - API endpoints for monitoring agent status
+- Robust error handling with retry logic for RPC rate limits
 
 ## Tech Stack
 
@@ -27,8 +29,9 @@ A TypeScript-based automated agent for managing liquidity positions in Orca Whir
 ## Prerequisites
 
 - [Bun](https://bun.sh) installed
-- Solana Devnet wallet with SOL
-- Devnet USDC tokens
+- Solana wallet with SOL
+- USDC tokens for liquidity provision
+- RPC endpoint with sufficient rate limits (e.g., Helius)
 
 ## Setup
 
@@ -49,19 +52,22 @@ cp .env.example .env
 Edit the `.env` file with your specific configuration:
 
 ```
-# Solana RPC Endpoint (Devnet)
-SOLANA_RPC_URL=https://api.devnet.solana.com
+# Solana RPC Endpoint (Mainnet or Devnet)
+SOLANA_RPC_URL=https://mainnet.helius-rpc.com/?api-key=your_api_key_here
 
 # Agent wallet private key (base58 encoded)
 WALLET_PRIVATE_KEY=your_private_key_here
 
-# Orca Whirlpool addresses (Devnet)
-WHIRLPOOL_PROGRAM_ID=whirLbMiicVdio4qvUfM5KAg6Ct8VwpYzGff3uctyCc
-USDC_SOL_WHIRLPOOL_ADDRESS=your_whirlpool_address_here
+# Network (mainnet or devnet)
+NETWORK=mainnet
 
-# Token mints (Devnet)
+# Orca Whirlpool addresses
+WHIRLPOOL_PROGRAM_ID=whirLbMiicVdio4qvUfM5KAg6Ct8VwpYzGff3uctyCc
+USDC_SOL_WHIRLPOOL_ADDRESS=HJPjoWUrhoZzkNfRpHuieeFk9WcZWjwy6PBjZ81ngndJ
+
+# Token mints
 SOL_MINT=So11111111111111111111111111111111111111112
-USDC_MINT=your_usdc_mint_address_here
+USDC_MINT=EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v
 
 # Liquidity position parameters
 DEFAULT_POSITION_LOWER_PRICE=0.01
@@ -77,14 +83,31 @@ HOST=0.0.0.0
 
 ## Usage
 
-### Run the agent execution loop
+### Run individual commands
 
-This will execute the full lifecycle of a liquidity position (open, add, claim, remove, close):
+The agent provides several commands to manage liquidity positions:
 
 ```bash
-bun run start
-# or
-bun run src/main.ts
+# Open a new position
+bun run position:open
+
+# Add liquidity to an existing position
+bun run position:add
+
+# Check position status
+bun run position:check
+
+# Monitor position in real-time
+bun run position:monitor
+
+# Claim fees from a position
+bun run position:claim
+
+# Close a position
+bun run position:close
+
+# Run the full lifecycle (open, add, claim, remove, close)
+bun run position:lifecycle
 ```
 
 ### Start the API server
@@ -122,10 +145,17 @@ bun run build
 ├── src/
 │   ├── config/       # Configuration and environment variables
 │   ├── services/     # Core services for Solana, Orca, and position management
+│   │   ├── liquidityManager.ts  # Position management functions
+│   │   ├── orca.ts              # Orca Whirlpool interactions
+│   │   ├── positionMonitor.ts   # Position monitoring service
+│   │   ├── positionState.ts     # Position state management
+│   │   ├── solana.ts            # Solana connection and wallet handling
+│   │   └── tokenUtils.ts        # Token-related utilities (SOL/WSOL handling)
 │   ├── utils/        # Utility functions
-│   ├── main.ts       # Agent execution loop
+│   ├── main.ts       # Command-line interface and execution
 │   └── server.ts     # Hono API server
-├── .env.example      # Example environment variables
+├── .env              # Environment variables (not committed)
+├── wallet.json       # Wallet configuration (not committed)
 ├── .eslintrc.json    # ESLint configuration
 ├── .prettierrc       # Prettier configuration
 ├── package.json      # Project dependencies and scripts
@@ -135,6 +165,14 @@ bun run build
 ## License
 
 MIT
+
+## Recent Updates
+
+- Added support for Solana Mainnet
+- Implemented robust error handling and retry logic for RPC rate limits
+- Enhanced transaction handling with proper blockhash management
+- Improved wallet implementation with support for both legacy and versioned transactions
+- Added position monitoring functionality with real-time status updates
 
 ---
 
