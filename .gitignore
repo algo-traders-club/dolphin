@@ -105,6 +105,13 @@ web_modules/
 .env.test.local
 .env.production.local
 .env.local
+.env.mainnet
+
+# Wallet files and secrets
+wallet.json
+wallet.env
+*.keypair
+*.pem
 
 # parcel-bundler cache (https://parceljs.org/)
 

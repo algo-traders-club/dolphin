@@ -2,6 +2,9 @@ import { Connection, Keypair, PublicKey } from '@solana/web3.js';
 import { AnchorProvider, Wallet } from '@project-serum/anchor';
 import bs58 from 'bs58';
 import { ENV } from '../config/env';
+import * as fs from 'fs';
+import * as path from 'path';
+import * as logger from '../utils/logger';
 
 // Singleton instances
 let connection: Connection | null = null;
@@ -15,30 +18,67 @@ let provider: AnchorProvider | null = null;
 export function getConnection(): Connection {
   if (!connection) {
     connection = new Connection(ENV.SOLANA_RPC_URL, 'confirmed');
-    console.log(`Connected to Solana RPC: ${ENV.SOLANA_RPC_URL}`);
+    logger.info(`Connected to Solana RPC: ${ENV.SOLANA_RPC_URL}`);
   }
   return connection;
 }
 
 /**
- * Get the agent's wallet from the private key in environment variables
+ * Get the agent's wallet from either wallet.json file or environment variables
  * @returns Anchor-compatible Wallet object
  */
 export function getWallet(): Wallet {
   if (!wallet) {
     try {
-      // Convert base58 private key to Keypair
-      const privateKeyBytes = bs58.decode(ENV.WALLET_PRIVATE_KEY);
-      const keypair = Keypair.fromSecretKey(privateKeyBytes);
+      let keypair: Keypair;
+      
+      // First try to load from wallet.json file
+      const walletJsonPath = path.resolve(process.cwd(), 'wallet.json');
+      
+      if (fs.existsSync(walletJsonPath)) {
+        logger.info('Loading wallet from wallet.json file');
+        const walletJson = JSON.parse(fs.readFileSync(walletJsonPath, 'utf-8'));
+        
+        if (walletJson.secretKey && Array.isArray(walletJson.secretKey)) {
+          // Convert the array to Uint8Array
+          const secretKeyUint8 = new Uint8Array(walletJson.secretKey);
+          keypair = Keypair.fromSecretKey(secretKeyUint8);
+        } else {
+          throw new Error('Invalid wallet.json format. Expected secretKey array.');
+        }
+      } 
+      // If wallet.json doesn't exist, try loading from .env
+      else if (ENV.WALLET_PRIVATE_KEY) {
+        logger.info('Loading wallet from environment variables');
+        
+        // Check if the private key is in array format
+        if (ENV.WALLET_PRIVATE_KEY.startsWith('[') && ENV.WALLET_PRIVATE_KEY.endsWith(']')) {
+          try {
+            // Parse the array string into an actual array
+            const privateKeyArray = JSON.parse(ENV.WALLET_PRIVATE_KEY);
+            const secretKeyUint8 = new Uint8Array(privateKeyArray);
+            keypair = Keypair.fromSecretKey(secretKeyUint8);
+          } catch (parseError) {
+            logger.error('Failed to parse private key array:', parseError);
+            throw new Error('Invalid private key array format in .env file');
+          }
+        } else {
+          // Assume it's a base58 encoded string
+          const privateKeyBytes = bs58.decode(ENV.WALLET_PRIVATE_KEY);
+          keypair = Keypair.fromSecretKey(privateKeyBytes);
+        }
+      } else {
+        throw new Error('No wallet found. Please provide wallet.json or WALLET_PRIVATE_KEY in .env');
+      }
       
       // Create an Anchor-compatible wallet
       wallet = new Wallet(keypair);
       
       // Log the public key for verification (never log the private key)
-      console.log(`Agent wallet loaded with public key: ${wallet.publicKey.toString()}`);
+      logger.info(`Agent wallet loaded with public key: ${wallet.publicKey.toString()}`);
     } catch (error) {
-      console.error('Failed to load wallet from private key:', error);
-      throw new Error('Invalid wallet private key. Please check your .env file.');
+      logger.error('Failed to load wallet:', error);
+      throw new Error(`Failed to load wallet: ${(error as Error).message}`);
     }
   }
   return wallet;
@@ -97,7 +137,7 @@ export async function getTokenBalance(mint: PublicKey): Promise<number | null> {
     const accountInfo = await connection.getTokenAccountBalance(accounts.value[0].pubkey);
     return Number(accountInfo.value.amount) / Math.pow(10, accountInfo.value.decimals);
   } catch (error) {
-    console.error(`Error fetching token balance for mint ${mint.toString()}:`, error);
+    logger.error(`Error fetching token balance for mint ${mint.toString()}:`, error);
     return null;
   }
 }
