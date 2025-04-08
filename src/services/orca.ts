@@ -2,6 +2,7 @@ import { WhirlpoolContext, buildWhirlpoolClient } from '@orca-so/whirlpools-sdk'
 import { PDAUtil, PoolUtil } from '@orca-so/whirlpools-sdk';
 import { Percentage } from '@orca-so/common-sdk';
 import { PublicKey } from '@solana/web3.js';
+import { BN } from '@project-serum/anchor';
 import { ENV } from '../config/env';
 import { getConnection, getProvider } from './solana';
 import * as logger from '../utils/logger';
@@ -24,29 +25,67 @@ export function getOrcaClient(): ReturnType<typeof buildWhirlpoolClient> {
       throw new Error('WHIRLPOOL_PROGRAM_ID is not defined in environment variables');
     }
     
-    const provider = getProvider();
-    // Create a wallet adapter that works with the Orca SDK
-    const walletAdapter = {
-      publicKey: provider.wallet.publicKey,
-      signTransaction: async (tx: any) => {
-        return await provider.wallet.signTransaction(tx);
-      },
-      signAllTransactions: async (txs: any[]) => {
-        return await provider.wallet.signAllTransactions(txs);
-      }
-    };
-    
-    // Use the buildWhirlpoolClient factory function
-    orcaClient = buildWhirlpoolClient({
-      network: 'mainnet-beta',
-      connection: getConnection(),
-      wallet: walletAdapter,
-      programId: ENV.WHIRLPOOL_PROGRAM_ID,
-    });
-    
-    logger.info('Orca Whirlpool Client initialized');
+    try {
+      // Using the simplest approach with type assertions to bypass dependency version issues
+      const connection = getConnection();
+      const wallet = getProvider().wallet;
+      
+      // Create a context configuration object
+      const contextConfig = {
+        connection,
+        wallet: {
+          publicKey: wallet.publicKey,
+          signTransaction: wallet.signTransaction.bind(wallet),
+          signAllTransactions: wallet.signAllTransactions.bind(wallet)
+        },
+        programId: new PublicKey(ENV.WHIRLPOOL_PROGRAM_ID)
+      };
+      
+      // Use type assertion to bypass TypeScript errors from version mismatches
+      orcaClient = buildWhirlpoolClient(contextConfig as any);
+      
+      logger.info(`Orca Whirlpool Client initialized on ${ENV.NETWORK === 'mainnet' ? 'mainnet' : 'devnet'}`);
+    } catch (error) {
+      logger.error('Failed to initialize Orca client:', error);
+      throw new Error(`Failed to initialize Orca client: ${(error as Error).message}`);
+    }
   }
   return orcaClient;
+}
+
+/**
+ * Fetch position details for a specific position
+ * @param positionAddress The public key of the position
+ * @returns Promise resolving to the position details
+ */
+export async function fetchPositionDetails(positionAddress: PublicKey) {
+  try {
+    const client = getOrcaClient();
+    
+    // Fetch the position data
+    const position = await client.getPosition(positionAddress);
+    const positionData = position.getData();
+    
+    logger.debug(`Fetched position data for address: ${positionAddress.toString()}`);
+    logger.debug(`Whirlpool: ${positionData.whirlpool.toString()}`);
+    logger.debug(`Liquidity: ${positionData.liquidity.toString()}`);
+    logger.debug(`Fee owed A: ${positionData.feeOwedA.toString()}`);
+    logger.debug(`Fee owed B: ${positionData.feeOwedB.toString()}`);
+    
+    return {
+      position,
+      positionData,
+      liquidity: positionData.liquidity,
+      feeOwedA: positionData.feeOwedA,
+      feeOwedB: positionData.feeOwedB,
+      tickLowerIndex: positionData.tickLowerIndex,
+      tickUpperIndex: positionData.tickUpperIndex,
+      whirlpoolAddress: positionData.whirlpool
+    };
+  } catch (error) {
+    logger.error(`Error fetching position data for ${positionAddress.toString()}:`, error);
+    throw new Error(`Failed to fetch position data: ${(error as Error).message}`);
+  }
 }
 
 /**
@@ -99,6 +138,8 @@ export async function fetchWhirlpoolData(poolAddress: PublicKey) {
       tokenAInfo,
       tokenBInfo,
       price: humanReadablePrice,
+      tickCurrentIndex: poolData.tickCurrentIndex,
+      priceDecimal: price, // Return the Decimal object for precise calculations
     };
   } catch (error) {
     logger.error(`Error fetching Whirlpool data for ${poolAddress.toString()}:`, error);

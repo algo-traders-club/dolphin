@@ -29,6 +29,7 @@ export const ENV = {
   // Solana connection
   SOLANA_RPC_URL: getEnvVar('SOLANA_RPC_URL', true),
   WALLET_PRIVATE_KEY: getEnvVar('WALLET_PRIVATE_KEY', true),
+  NETWORK: getEnvVar('NETWORK', false) || 'mainnet', // Default to mainnet
   
   // Orca Whirlpool addresses
   WHIRLPOOL_PROGRAM_ID: getPublicKeyFromEnv('WHIRLPOOL_PROGRAM_ID', true),

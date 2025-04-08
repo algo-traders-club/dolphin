@@ -72,7 +72,7 @@ export function error(message: string, error?: any): void {
  */
 export function transaction(signature: string, message?: string): void {
   if (MIN_LOG_LEVEL <= LogLevel.INFO) {
-    const explorerUrl = `https://explorer.solana.com/tx/${signature}?cluster=devnet`;
+    const explorerUrl = `https://explorer.solana.com/tx/${signature}`; // Mainnet is default
     console.info(`[${getTimestamp()}] [TX] ${message || 'Transaction'}: ${signature}`);
     console.info(`[${getTimestamp()}] [TX] Explorer URL: ${explorerUrl}`);
   }

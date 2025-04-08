@@ -93,6 +93,10 @@ export async function openPosition(
       tickUpperIndex: alignedTickUpper,
       liquidity: new BN(0),
       createdAt: new Date(),
+      // Initialize the new fields for position monitoring
+      feeOwedA: new BN(0),
+      feeOwedB: new BN(0),
+      lastUpdatedAt: new Date(),
     });
     
     return {

@@ -12,6 +12,10 @@ export interface LiquidityPosition {
   tickUpperIndex: number;
   liquidity: BN;
   createdAt: Date;
+  // New fields for position monitoring
+  feeOwedA: BN;
+  feeOwedB: BN;
+  lastUpdatedAt: Date;
 }
 
 // Singleton state management for the agent's active position
@@ -23,6 +27,17 @@ class PositionStateManager {
    * @param position The position details to store
    */
   setActivePosition(position: LiquidityPosition): void {
+    // Initialize fee fields if not provided
+    if (!position.feeOwedA) {
+      position.feeOwedA = new BN(0);
+    }
+    if (!position.feeOwedB) {
+      position.feeOwedB = new BN(0);
+    }
+    if (!position.lastUpdatedAt) {
+      position.lastUpdatedAt = new Date();
+    }
+    
     this.activePosition = position;
     console.log(`Position state updated: ${position.positionAddress.toString()}`);
   }
@@ -62,7 +77,28 @@ class PositionStateManager {
       throw new Error('Cannot update liquidity: No active position');
     }
     this.activePosition.liquidity = newLiquidity;
+    this.activePosition.lastUpdatedAt = new Date();
     console.log(`Updated liquidity for position: ${this.activePosition.positionAddress.toString()}`);
+  }
+  
+  /**
+   * Update position details including liquidity and fees
+   * @param details The position details to update
+   */
+  updatePositionDetails(details: { liquidity: BN, feeOwedA: BN, feeOwedB: BN }): void {
+    if (!this.activePosition) {
+      throw new Error('Cannot update position details: No active position');
+    }
+    
+    this.activePosition.liquidity = details.liquidity;
+    this.activePosition.feeOwedA = details.feeOwedA;
+    this.activePosition.feeOwedB = details.feeOwedB;
+    this.activePosition.lastUpdatedAt = new Date();
+    
+    console.log(`Updated position details for: ${this.activePosition.positionAddress.toString()}`);
+    console.log(`Liquidity: ${details.liquidity.toString()}`);
+    console.log(`Fee owed A: ${details.feeOwedA.toString()}`);
+    console.log(`Fee owed B: ${details.feeOwedB.toString()}`);
   }
 }
 

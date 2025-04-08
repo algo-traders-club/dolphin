@@ -15,7 +15,15 @@
     "check:mainnet": "bun run src/scripts/checkMainnet.ts",
     "check:whirlpool": "bun run src/scripts/checkMainnetWhirlpool.ts",
     "check:whirlpool:new": "bun run src/scripts/checkMainnetWhirlpoolNew.ts",
-    "test:wallet": "bun run src/scripts/testWallet.ts"
+    "test:wallet": "bun run src/scripts/testWallet.ts",
+    "test:monitoring": "bun run src/scripts/testPositionMonitoring.ts",
+    "position:open": "bun run src/main.ts open-position",
+    "position:add": "bun run src/main.ts add-liquidity",
+    "position:claim": "bun run src/main.ts claim-fees",
+    "position:check": "bun run src/main.ts check-position",
+    "position:monitor": "bun run src/main.ts monitor-position",
+    "position:close": "bun run src/main.ts close-position",
+    "position:lifecycle": "bun run src/main.ts full-lifecycle"
   },
   "dependencies": {
     "@orca-so/common-sdk": "^0.3.3",

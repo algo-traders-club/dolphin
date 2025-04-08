@@ -119,7 +119,12 @@ export async function getWalletSolBalance(): Promise<number> {
  * @param mint The mint address of the token
  * @returns Promise resolving to the token balance
  */
-export async function getTokenBalance(mint: PublicKey): Promise<number | null> {
+export async function getTokenBalance(mint?: PublicKey): Promise<number | null> {
+  if (!mint) {
+    logger.warn('Token mint address not provided to getTokenBalance');
+    return null;
+  }
+  
   const connection = getConnection();
   const wallet = getWallet();
   
@@ -130,6 +135,7 @@ export async function getTokenBalance(mint: PublicKey): Promise<number | null> {
     });
     
     if (accounts.value.length === 0) {
+      logger.info(`No token account found for mint ${mint.toString()}`);
       return null; // No token account found
     }
     

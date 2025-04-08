@@ -2,9 +2,12 @@ import { Hono } from 'hono';
 import { serveStatic } from 'hono/bun';
 import { ENV } from './config/env';
 import { positionState } from './services/positionState';
-import { getOrcaClient } from './services/orca';
+import { getOrcaClient, fetchPositionDetails } from './services/orca';
 import { getConnection, getWalletSolBalance } from './services/solana';
 import { getWsolBalance } from './services/tokenUtils';
+import { positionMonitor } from './services/positionMonitor';
+import { checkPositionRangeStatus, PositionRangeStatus, formatFeeAmount } from './utils/positionUtils';
+import * as logger from './utils/logger';
 
 // Create a new Hono app
 const app = new Hono();
@@ -27,10 +30,14 @@ app.get('/api/status', async (c) => {
       isActive: positionState.hasActivePosition(),
       walletAddress: process.env.WALLET_PUBLIC_KEY || 'Not available',
       timestamp: new Date().toISOString(),
+      monitoring: {
+        isActive: positionMonitor.isActive(),
+      }
     };
     
     // Add position details if active
     if (activePosition) {
+      // Use the data from positionState which is kept updated by the monitoring service
       response.position = {
         address: activePosition.positionAddress.toString(),
         mint: activePosition.positionMint.toString(),
@@ -39,17 +46,33 @@ app.get('/api/status', async (c) => {
         tickUpper: activePosition.tickUpperIndex,
         liquidity: activePosition.liquidity.toString(),
         createdAt: activePosition.createdAt.toISOString(),
+        lastUpdatedAt: activePosition.lastUpdatedAt.toISOString(),
+        feeOwedA: activePosition.feeOwedA.toString(),
+        feeOwedB: activePosition.feeOwedB.toString(),
+        // Format fees for human readability (assuming USDC and SOL)
+        formattedFeeOwedA: formatFeeAmount(activePosition.feeOwedA.toString(), 6) + ' USDC',
+        formattedFeeOwedB: formatFeeAmount(activePosition.feeOwedB.toString(), 9) + ' SOL',
       };
       
-      // Fetch live position data if available
-      try {
-        const client = getOrcaClient();
-        const position = await client.getPosition(activePosition.positionAddress);
-        const positionData = position.getData();
-        
-        response.position.currentLiquidity = positionData.liquidity.toString();
-      } catch (error) {
-        console.error('Error fetching live position data:', error);
+      // Add range status if monitoring is active
+      if (positionMonitor.isActive()) {
+        try {
+          // Get the current pool data to determine range status
+          const client = getOrcaClient();
+          const pool = await client.getPool(activePosition.whirlpoolAddress);
+          const poolData = pool.getData();
+          
+          const rangeStatus = checkPositionRangeStatus(
+            poolData.tickCurrentIndex,
+            activePosition.tickLowerIndex,
+            activePosition.tickUpperIndex
+          );
+          
+          response.position.rangeStatus = rangeStatus;
+          response.position.currentTick = poolData.tickCurrentIndex;
+        } catch (error) {
+          logger.error('Error determining position range status:', error);
+        }
       }
     }
     
@@ -80,9 +103,32 @@ app.get('/api/status', async (c) => {
 const port = ENV.PORT;
 const host = ENV.HOST;
 
-console.log(`Starting Orca Liquidity Agent API server on ${host}:${port}`);
-console.log(`Health check available at http://${host}:${port}/health`);
-console.log(`Agent status available at http://${host}:${port}/api/status`);
+// Start position monitoring if there's an active position
+if (positionState.hasActivePosition()) {
+  logger.info('Starting position monitoring for existing active position');
+  positionMonitor.start();
+}
+
+// Handle graceful shutdown
+process.on('SIGINT', () => {
+  logger.info('Received SIGINT signal, shutting down gracefully');
+  if (positionMonitor.isActive()) {
+    positionMonitor.stop();
+  }
+  process.exit(0);
+});
+
+process.on('SIGTERM', () => {
+  logger.info('Received SIGTERM signal, shutting down gracefully');
+  if (positionMonitor.isActive()) {
+    positionMonitor.stop();
+  }
+  process.exit(0);
+});
+
+logger.info(`Starting Orca Liquidity Agent API server on ${host}:${port}`);
+logger.info(`Health check available at http://${host}:${port}/health`);
+logger.info(`Agent status available at http://${host}:${port}/api/status`);
 
 export default {
   port,
