@@ -92,10 +92,7 @@ export default function Home() {
       <div className="flex flex-col space-y-8">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-card p-6 rounded-lg shadow-sm border-0">
           <div className="flex items-center">
-            <div className="leading-tight">
-              <h2 className="text-2xl font-semibold tracking-tight">SOL/USDC</h2>
-              <p className="text-sm text-muted-foreground -mt-0.5">Liquidity Position</p>
-            </div>
+            <h2 className="text-2xl font-semibold tracking-tight">SOL/USDC <span className="text-muted-foreground font-normal">Liquidity Position</span></h2>
           </div>
           <div className="flex items-center space-x-3">
             <ClientThemeToggle />
