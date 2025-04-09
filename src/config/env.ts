@@ -1,8 +1,8 @@
-import { config } from 'dotenv';
+import { config as dotenvConfig } from 'dotenv';
 import { PublicKey } from '@solana/web3.js';
 
 // Load environment variables from .env file
-config();
+dotenvConfig();
 
 // Helper function to get environment variables with validation
 function getEnvVar(key: string, required = true): string {
@@ -25,7 +25,7 @@ function getPublicKeyFromEnv(key: string, required = true): PublicKey | undefine
 }
 
 // Configuration object
-export const ENV = {
+export const config = {
   // Solana connection
   SOLANA_RPC_URL: getEnvVar('SOLANA_RPC_URL', true),
   WALLET_PRIVATE_KEY: getEnvVar('WALLET_PRIVATE_KEY', true),
@@ -44,6 +44,13 @@ export const ENV = {
   DEFAULT_POSITION_UPPER_PRICE: parseFloat(getEnvVar('DEFAULT_POSITION_UPPER_PRICE', false) || '0.05'),
   DEFAULT_LIQUIDITY_AMOUNT_USDC: parseFloat(getEnvVar('DEFAULT_LIQUIDITY_AMOUNT_USDC', false) || '10'),
   
+  // Auto-rebalancing configuration
+  REBALANCE_ENABLED: getEnvVar('REBALANCE_ENABLED', false) === 'true',
+  REBALANCE_THRESHOLD_PERCENT: parseFloat(getEnvVar('REBALANCE_THRESHOLD_PERCENT', false) || '5'),
+  MIN_REBALANCE_INTERVAL_MINUTES: parseInt(getEnvVar('MIN_REBALANCE_INTERVAL_MINUTES', false) || '60', 10),
+  POSITION_WIDTH_PERCENT: parseFloat(getEnvVar('POSITION_WIDTH_PERCENT', false) || '20'),
+  MAX_DAILY_REBALANCES: parseInt(getEnvVar('MAX_DAILY_REBALANCES', false) || '6', 10),
+  
   // Database configuration
   DATABASE_URL: getEnvVar('DATABASE_URL', false) || 'postgres://postgres:postgres@timescaledb:5432/cashflow',
   
@@ -51,3 +58,6 @@ export const ENV = {
   PORT: parseInt(getEnvVar('PORT', false) || '3000', 10),
   HOST: getEnvVar('HOST', false) || '0.0.0.0',
 };
+
+// For backward compatibility
+export const ENV = config;

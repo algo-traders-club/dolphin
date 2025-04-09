@@ -15,6 +15,8 @@ import { savePositionSnapshot } from './database/positionService';
 import type { PositionSnapshotData } from './database/positionService';
 import * as logger from '../utils/logger';
 import { withRetry } from './walletUtils';
+import { autoRebalancer } from './autoRebalancer';
+import { config } from '../config/env';
 
 // Default monitoring interval (60 seconds)
 const DEFAULT_MONITOR_INTERVAL_MS = 60 * 1000;
@@ -27,7 +29,7 @@ export class PositionMonitor {
   private active = false;
   private lastPoolData: {
     tickCurrentIndex: number;
-    price: number;
+    price: string | number;
     timestamp: Date;
   } | null = null;
   private readonly intervalMs: number;
@@ -147,6 +149,37 @@ export class PositionMonitor {
       // 6. Save position snapshot to database
       await this.savePositionSnapshot(position, currentTick, rangeStatus);
       
+      // 7. Check if rebalancing is needed
+      if (config.REBALANCE_ENABLED) {
+        try {
+          const needsRebalancing = await autoRebalancer.checkIfRebalancingNeeded(
+            currentTick,
+            position,
+            currentPrice
+          );
+          
+          if (needsRebalancing) {
+            logger.info('Position needs rebalancing, initiating rebalance process...');
+            
+            // Execute the rebalance
+            const rebalanceResult = await autoRebalancer.executeRebalance(
+              position,
+              typeof currentPrice === 'string' ? parseFloat(currentPrice) : currentPrice
+            );
+            
+            if (rebalanceResult.success) {
+              logger.info('Rebalance completed successfully');
+              logger.info(`Transaction IDs: ${rebalanceResult.txIds.join(', ')}`);
+            } else {
+              logger.error('Rebalance failed');
+            }
+          }
+        } catch (rebalanceError) {
+          logger.error('Error during rebalance check:', rebalanceError);
+          // Continue monitoring even if rebalance check fails
+        }
+      }
+      
     } catch (error) {
       logger.error('Error monitoring position:', error);
       // Don't stop monitoring on error, just log it and continue on next interval
@@ -159,10 +192,9 @@ export class PositionMonitor {
    * @returns The whirlpool data
    */
   private async fetchPoolDataWithRetry(whirlpoolAddress: PublicKey) {
-    return withRetry(async () => {
-      logger.debug(`Fetching whirlpool data for ${whirlpoolAddress.toString()}`);
-      return await fetchWhirlpoolData(whirlpoolAddress);
-    }, 3, 1000);
+    logger.debug(`Fetching whirlpool data for ${whirlpoolAddress.toString()}`);
+    // Use the enhanced fetchWhirlpoolData function with built-in retry logic
+    return await fetchWhirlpoolData(whirlpoolAddress, 5);
   }
 
   /**
@@ -171,10 +203,9 @@ export class PositionMonitor {
    * @returns The position details
    */
   private async fetchPositionDetailsWithRetry(positionAddress: PublicKey) {
-    return withRetry(async () => {
-      logger.debug(`Fetching position details for ${positionAddress.toString()}`);
-      return await fetchPositionDetails(positionAddress);
-    }, 3, 1000);
+    logger.debug(`Fetching position details for ${positionAddress.toString()}`);
+    // Use the enhanced fetchPositionDetails function with built-in retry logic
+    return await fetchPositionDetails(positionAddress, 5);
   }
 
   /**
@@ -222,7 +253,7 @@ export class PositionMonitor {
    */
   private logPositionStatus(
     currentTick: number,
-    currentPrice: number,
+    currentPrice: string | number,
     position: {
       tickLowerIndex: number;
       tickUpperIndex: number;

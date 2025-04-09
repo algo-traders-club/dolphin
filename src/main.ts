@@ -2,16 +2,22 @@ import { PublicKey } from '@solana/web3.js';
 import Decimal from 'decimal.js';
 import { ENV } from './config/env';
 import { fetchWhirlpoolData, fetchPositionDetails } from './services/orca';
-import { getWalletSolBalance } from './services/solana';
+import { getWalletSolBalance } from './services/walletUtils';
+import { networkManager } from './services/networkManager';
 import { openPosition, addLiquidity, claimFees, removeLiquidity, closePosition } from './services/liquidityManager';
 import { positionState } from './services/positionState';
 import { wrapSol, unwrapSol, getWsolBalance, getTokenBalanceWithRetry } from './services/tokenUtils';
 import { positionMonitor } from './services/positionMonitor';
 import { checkPositionRangeStatus, PositionRangeStatus, formatFeeAmount } from './utils/positionUtils';
 import * as logger from './utils/logger';
+import { autoRebalancer } from './services/autoRebalancer';
+import { config } from './config/env';
 
 // Sleep utility function
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+// Initialize the logger
+logger.initialize();
 
 /**
  * Command to open a new position
@@ -347,6 +353,57 @@ async function cmdClosePosition() {
 }
 
 /**
+ * Command to manage rebalancing
+ * @param action The action to perform (enable, disable, status)
+ */
+async function cmdManageRebalancing(action: string) {
+  try {
+    if (!positionState.hasActivePosition()) {
+      logger.warn('No active position to manage rebalancing for');
+      return { success: false, message: 'No active position' };
+    }
+
+    const stats = autoRebalancer.getRebalanceStats();
+
+    switch (action) {
+      case 'status':
+        logger.info('Auto-rebalancing status:');
+        logger.info(`- Enabled: ${config.REBALANCE_ENABLED}`);
+        logger.info(`- Last rebalance: ${stats.lastRebalanceTime ? stats.lastRebalanceTime.toISOString() : 'Never'}`);
+        logger.info(`- Rebalance count today: ${stats.rebalanceCount}/${config.MAX_DAILY_REBALANCES}`);
+        logger.info(`- Count reset time: ${stats.rebalanceCountResetTime.toISOString()}`);
+        logger.info(`- Position out of range since: ${stats.positionOutOfRangeSince ? stats.positionOutOfRangeSince.toISOString() : 'In range'}`);
+        logger.info(`- Threshold: ${config.REBALANCE_THRESHOLD_PERCENT}%`);
+        logger.info(`- Min interval: ${config.MIN_REBALANCE_INTERVAL_MINUTES} minutes`);
+        logger.info(`- Position width: ${config.POSITION_WIDTH_PERCENT}%`);
+        return { success: true, stats };
+
+      case 'enable':
+        // This is just setting the config value in memory
+        // In a production app, you'd want to update the .env file or database
+        (config as any).REBALANCE_ENABLED = true;
+        logger.info('Auto-rebalancing enabled');
+        return { success: true, enabled: true };
+
+      case 'disable':
+        // This is just setting the config value in memory
+        // In a production app, you'd want to update the .env file or database
+        (config as any).REBALANCE_ENABLED = false;
+        logger.info('Auto-rebalancing disabled');
+        return { success: true, enabled: false };
+
+      default:
+        logger.warn(`Unknown rebalancing action: ${action}`);
+        logger.info('Available actions: status, enable, disable');
+        return { success: false, message: 'Unknown action' };
+    }
+  } catch (error) {
+    logger.error('Error managing rebalancing:', error);
+    throw error;
+  }
+}
+
+/**
  * Command to run the full lifecycle demo
  */
 async function cmdRunFullLifecycle() {
@@ -460,6 +517,16 @@ async function cmdRemoveLiquidity() {
  */
 async function main() {
   try {
+    // Log application startup
+    logger.info(`Orca Liquidity Agent starting on network: ${ENV.NETWORK || 'mainnet'}`);
+    logger.info(`Connected to Solana RPC: ${ENV.SOLANA_RPC_URL.replace(/:[^:]*@/, ':****@')}`);
+    
+    // Check network connection
+    const networkStatus = await networkManager.checkNetwork(ENV.NETWORK as any || 'mainnet');
+    logger.info(`Network connection established: ${networkStatus.network}`);
+    logger.info(`Wallet address: ${networkStatus.publicKey}`);
+    logger.info(`SOL balance: ${networkStatus.solBalance}`);
+    
     // Get command line arguments
     const args = process.argv.slice(2);
     const command = args[0] || 'help';
@@ -512,6 +579,11 @@ async function main() {
         await cmdRunFullLifecycle();
         break;
         
+      case 'rebalance':
+        const rebalanceAction = args[1] || 'status';
+        await cmdManageRebalancing(rebalanceAction);
+        break;
+        
       case 'help':
       default:
         logger.info('Orca Liquidity Agent - Command Help');
@@ -525,6 +597,7 @@ async function main() {
         logger.info('  monitor-position    - Start monitoring the active position');
         logger.info('  close-position      - Close the active position');
         logger.info('  full-lifecycle      - Run the full position lifecycle demo');
+        logger.info('  rebalance [action]  - Manage auto-rebalancing (status|enable|disable)');
         logger.info('  help                - Show this help message');
         break;
     }

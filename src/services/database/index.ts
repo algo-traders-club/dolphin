@@ -1,4 +1,5 @@
-import { Pool, PoolClient } from 'pg';
+import { Pool } from 'pg';
+import type { PoolClient } from 'pg';
 import { ENV } from '../../config/env';
 import * as logger from '../../utils/logger';
 
@@ -15,6 +16,9 @@ pool.on('error', (err: Error) => {
   logger.error('Unexpected error on idle database client', err);
   process.exit(-1);
 });
+
+// Import the table initialization functions
+import { initRebalanceHistoryTable } from './rebalanceService';
 
 // Connect to the database and verify connection
 export async function initDatabase(): Promise<void> {
@@ -35,6 +39,10 @@ export async function initDatabase(): Promise<void> {
     } else {
       logger.warn('TimescaleDB extension is not installed');
     }
+    
+    // Initialize database tables
+    await initRebalanceHistoryTable();
+    logger.info('Database tables initialized');
   } catch (error) {
     logger.error('Failed to connect to database', error);
     throw error;
@@ -45,23 +53,66 @@ export async function initDatabase(): Promise<void> {
   }
 }
 
-// Get a client from the pool
-export async function getClient(): Promise<PoolClient> {
-  return await pool.connect();
+// Get a client from the pool with retry logic
+export async function getClient(maxRetries = 3): Promise<PoolClient> {
+  let lastError: Error | null = null;
+  
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      return await pool.connect();
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error(String(error));
+      
+      if (attempt === maxRetries - 1) {
+        logger.error(`Failed to get database client after ${maxRetries} attempts`, error);
+        throw lastError;
+      }
+      
+      const delay = Math.pow(2, attempt) * 100; // Exponential backoff
+      logger.warn(`Database connection attempt ${attempt + 1} failed, retrying in ${delay}ms: ${lastError.message}`);
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+  }
+  
+  // This should never be reached due to the throw in the loop, but TypeScript needs it
+  throw lastError || new Error('Failed to get database client after retries');
 }
 
-// Execute a query and return the result
-export async function query(text: string, params: any[] = []): Promise<any> {
+// Execute a query and return the result with retry logic
+export async function query(text: string, params: any[] = [], maxRetries = 3): Promise<any> {
   const start = Date.now();
-  try {
-    const result = await pool.query(text, params);
-    const duration = Date.now() - start;
-    logger.debug(`Executed query: ${text} (${duration}ms)`);
-    return result;
-  } catch (error) {
-    logger.error(`Query error: ${text}`, error);
-    throw error;
+  let lastError: Error | null = null;
+  
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      const result = await pool.query(text, params);
+      const duration = Date.now() - start;
+      logger.debug(`Executed query: ${text} (${duration}ms)`);
+      return result;
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error(String(error));
+      
+      // Check if this is a connection error that might be resolved by retrying
+      const isRetryable = 
+        error instanceof Error && 
+        (error.message.includes('connection') || 
+         error.message.includes('timeout') || 
+         error.message.includes('network') ||
+         error.message.includes('temporarily unavailable'));
+      
+      if (!isRetryable || attempt === maxRetries - 1) {
+        logger.error(`Query error (attempt ${attempt + 1}/${maxRetries}): ${text}`, error);
+        throw lastError;
+      }
+      
+      const delay = Math.pow(2, attempt) * 100; // Exponential backoff: 100ms, 200ms, 400ms, etc.
+      logger.warn(`Database query attempt ${attempt + 1} failed, retrying in ${delay}ms: ${lastError.message}`);
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
   }
+  
+  // This should never be reached due to the throw in the loop, but TypeScript needs it
+  throw lastError || new Error('Failed to execute query after retries');
 }
 
 // Close the pool
