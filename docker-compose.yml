@@ -5,6 +5,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      target: production
+    image: orca-liquidity-agent:production
     ports:
       - "3001:3000"
     environment:
@@ -19,6 +21,16 @@ services:
       - DEFAULT_POSITION_LOWER_PRICE=${DEFAULT_POSITION_LOWER_PRICE}
       - DEFAULT_POSITION_UPPER_PRICE=${DEFAULT_POSITION_UPPER_PRICE}
       - DEFAULT_LIQUIDITY_AMOUNT_USDC=${DEFAULT_LIQUIDITY_AMOUNT_USDC}
+      # Auto-rebalancing configuration
+      - REBALANCE_ENABLED=${REBALANCE_ENABLED:-false}
+      - REBALANCE_THRESHOLD_PERCENT=${REBALANCE_THRESHOLD_PERCENT:-5}
+      - MIN_REBALANCE_INTERVAL_MINUTES=${MIN_REBALANCE_INTERVAL_MINUTES:-60}
+      - POSITION_WIDTH_PERCENT=${POSITION_WIDTH_PERCENT:-20}
+      - MAX_DAILY_REBALANCES=${MAX_DAILY_REBALANCES:-6}
+      # Logging configuration
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+      - ENABLE_FILE_LOGGING=true
+      - LOG_DIRECTORY=/app/logs
       - PORT=3000
       - HOST=0.0.0.0
     depends_on:
@@ -26,27 +38,43 @@ services:
         condition: service_healthy
     restart: unless-stopped
     volumes:
-      - ./data:/app/data
+      - app_data:/app/data
+      - app_logs:/app/logs
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
 
   timescaledb:
     image: timescale/timescaledb:latest-pg14
     ports:
       - "5433:5432"
     environment:
-      - POSTGRES_PASSWORD=postgres
-      - POSTGRES_USER=postgres
-      - POSTGRES_DB=cashflow
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-postgres}
+      - POSTGRES_USER=${POSTGRES_USER:-postgres}
+      - POSTGRES_DB=${POSTGRES_DB:-cashflow}
     volumes:
       - timescaledb_data:/var/lib/postgresql/data
       - ./init-scripts:/docker-entrypoint-initdb.d
     restart: unless-stopped
-    command: postgres -c shared_preload_libraries=timescaledb
+    command: postgres -c shared_preload_libraries=timescaledb -c max_connections=100 -c shared_buffers=256MB
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 5s
       timeout: 5s
       retries: 5
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1G
 
 volumes:
   timescaledb_data:
+    driver: local
+  app_data:
+    driver: local
+  app_logs:
     driver: local
