@@ -12,7 +12,8 @@ A TypeScript-based automated agent for managing liquidity positions in Orca Whir
 - Close positions
 - Position monitoring with status updates
 - Position state persistence across application restarts
-- API endpoints for monitoring agent status
+- Auto-rebalancing mechanism for optimizing positions when out of range
+- API endpoints for monitoring agent status and rebalancing metrics
 - Robust error handling with retry logic for RPC rate limits
 
 ## Tech Stack
@@ -79,6 +80,13 @@ DEFAULT_POSITION_LOWER_PRICE=0.01
 DEFAULT_POSITION_UPPER_PRICE=0.05
 DEFAULT_LIQUIDITY_AMOUNT_USDC=10
 
+# Auto-rebalancing configuration
+REBALANCE_ENABLED=false
+REBALANCE_THRESHOLD_PERCENT=5
+MIN_REBALANCE_INTERVAL_MINUTES=60
+POSITION_WIDTH_PERCENT=20
+MAX_DAILY_REBALANCES=6
+
 # Server configuration
 PORT=3000
 HOST=0.0.0.0
@@ -122,6 +130,11 @@ bun run position:close
 
 # Run the full lifecycle (open, add, claim, remove, close)
 bun run position:lifecycle
+
+# Manage auto-rebalancing
+bun run src/main.ts rebalance status  # Check rebalancing status
+bun run src/main.ts rebalance enable  # Enable auto-rebalancing
+bun run src/main.ts rebalance disable  # Disable auto-rebalancing
 ```
 
 ### Start the API server
@@ -138,6 +151,9 @@ The server provides the following endpoints:
 - `GET /api/db/health` - Check database connection status
 - `GET /api/position/:address/history` - Get position history data
 - `GET /api/transactions` - Get transaction history
+- `GET /api/rebalance/history?position={positionAddress}` - Get rebalancing history for a position
+- `GET /api/rebalance/metrics` - Get metrics about rebalancing operations
+- `GET /api/rebalance/status` - Get current status of the auto-rebalancing system
 
 ### Run with Docker
 
@@ -179,6 +195,33 @@ Build the project:
 ```bash
 bun run build
 ```
+
+## Auto-Rebalancing Mechanism
+
+The agent includes an auto-rebalancing mechanism that optimizes liquidity positions when they go out of range, focusing on capital efficiency and minimizing transaction costs.
+
+### How It Works
+
+1. **Position Monitoring**: The system continuously monitors the position's price range relative to the current market price.
+
+2. **Out-of-Range Detection**: When a position goes out of range (current price is above or below the position's price range), the system tracks how long it has been out of range.
+
+3. **Rebalancing Decision**: The system decides to rebalance based on:
+   - How long the position has been out of range
+   - How far the current price is from the position's range (threshold percentage)
+   - When the last rebalance occurred (minimum interval)
+   - How many rebalances have been performed today (maximum daily limit)
+
+4. **Rebalancing Process**:
+   - Collects any accrued fees
+   - Removes liquidity from the current position
+   - Calculates an optimal new price range centered around the current price
+   - Creates a new position with the optimal range
+   - Adds liquidity back to the new position
+
+5. **Record Keeping**: Each rebalance operation is recorded in the database for analysis and reporting.
+
+For more detailed information, see the [auto-rebalancing documentation](docs/auto-rebalancing.md).
 
 ## System Architecture
 
