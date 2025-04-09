@@ -1,6 +1,6 @@
 # Autonomous Orca Liquidity Agent
 
-A TypeScript-based automated agent for managing liquidity positions in Orca Whirlpools on Solana (both Mainnet and Devnet). This application demonstrates the full lifecycle of creating, managing, and closing a liquidity position.
+A TypeScript-based automated agent for managing liquidity positions in Orca Whirlpools on Solana (both Mainnet and Devnet). This application demonstrates the full lifecycle of creating, managing, and closing a liquidity position, with a modern React dashboard for monitoring and management.
 
 ## Features
 
@@ -18,17 +18,19 @@ A TypeScript-based automated agent for managing liquidity positions in Orca Whir
 - Centralized network management with connection caching
 - Enhanced logging system with configurable levels and file rotation
 - Modular code architecture for improved maintainability
+- Modern React dashboard for position monitoring and management
 
 ## Tech Stack
 
 - **Runtime**: Bun
 - **Language**: TypeScript
-- **Web Framework**: Hono
+- **Web Framework**: Hono (API) and Next.js (Dashboard)
 - **Database**: PostgreSQL with TimescaleDB extension
 - **Containerization**: Docker & Docker Compose
 - **Blockchain**: Solana
 - **Architecture**: Modular command pattern
 - **Deployment**: AWS Lightsail Containers (see DEPLOYMENT.md)
+- **Frontend**: React 19, TailwindCSS, shadcn/ui components
 - **SDKs**: 
   - `@solana/web3.js`
   - `@orca-so/whirlpools-sdk` (v0.13.19)
@@ -105,6 +107,36 @@ DATABASE_URL=postgres://postgres:postgres@timescaledb:5432/cashflow
 
 **Important Security Note**: Never commit your `.env` file with real private keys to version control.
 
+## Dashboard
+
+The Cashflow Dashboard provides a modern, responsive interface for monitoring and managing your Orca liquidity positions. Built with Next.js and React 19, it offers real-time insights into your position performance.
+
+### Dashboard Features
+
+- **Position Overview**: Monitor current position status, range, and liquidity
+- **Revenue Tracking**: Visualize daily and monthly fee accruals
+- **Liquidity Management**: Track liquidity changes over time
+- **Transaction History**: View all position-related transactions
+- **Price Charts**: Monitor token price movements relative to position range
+
+### Running the Dashboard
+
+```bash
+# Navigate to the dashboard directory
+cd packages/dashboard
+
+# Install dependencies
+npm install
+
+# Start the development server
+npm run dev
+
+# Build for production
+npm run build
+```
+
+The dashboard will be available at http://localhost:3000 by default.
+
 ## Usage
 
 ### Run individual commands
@@ -165,7 +197,7 @@ The server provides the following endpoints:
 The application can be run using Docker and Docker Compose, which includes PostgreSQL with TimescaleDB extension for time-series data storage.
 
 ```bash
-# Build and start the containers
+# Build and start the containers (API and database only)
 docker compose up -d
 
 # View logs
@@ -183,6 +215,27 @@ The Docker setup includes:
 - Automatic database initialization with required tables and hypertables
 - Health checks to ensure proper service dependencies
 - Position data persistence across container restarts
+
+### Run with Dashboard
+
+To run the full stack including the dashboard:
+
+```bash
+# Build and start all containers including the dashboard
+docker compose -f docker-compose.yml -f docker-compose.dashboard.yml up -d
+
+# View dashboard logs
+docker compose logs -f dashboard
+
+# Stop all containers
+docker compose down
+```
+
+When running with the dashboard:
+- Dashboard container available at http://localhost:3002
+- Modern UI for monitoring liquidity positions, revenue, and transactions
+- Real-time data visualization with custom chart components
+- Responsive design that works on desktop and mobile devices
 
 ### Development
 
@@ -289,6 +342,21 @@ The Orca Liquidity Agent is designed with a containerized architecture using Doc
 ## Project Structure
 
 ```
+├── packages/
+│   ├── dashboard/    # React dashboard for monitoring and management
+│   │   ├── src/
+│   │   │   ├── app/              # Next.js app directory
+│   │   │   │   ├── liquidity/    # Liquidity page
+│   │   │   │   ├── position/     # Position page
+│   │   │   │   ├── revenue/      # Revenue page
+│   │   │   │   └── transactions/ # Transactions page
+│   │   │   ├── components/       # React components
+│   │   │   │   ├── charts/       # Custom chart components
+│   │   │   │   ├── layout/       # Layout components
+│   │   │   │   └── ui/           # UI components
+│   │   ├── public/               # Static assets
+│   │   ├── tailwind.config.ts    # Tailwind CSS configuration
+│   │   └── next.config.js        # Next.js configuration
 ├── src/
 │   ├── config/       # Configuration and environment variables
 │   ├── data/         # Local data storage for position state
