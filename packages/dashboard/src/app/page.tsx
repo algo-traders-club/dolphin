@@ -91,17 +91,7 @@ export default function Home() {
     <DashboardLayout>
       <div className="flex flex-col space-y-8">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-card p-6 rounded-lg shadow-sm border-0">
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2">
-              <div className="flex -space-x-1.5">
-                <div className="h-8 w-8 rounded-full bg-[#00FFA3] border-2 border-background flex items-center justify-center shadow-sm">
-                  <span className="text-xs font-bold text-black">SOL</span>
-                </div>
-                <div className="h-8 w-8 rounded-full bg-[#2775CA] border-2 border-background flex items-center justify-center shadow-sm">
-                  <span className="text-xs font-bold text-white">USDC</span>
-                </div>
-              </div>
-            </div>
+          <div className="flex items-center">
             <div>
               <h2 className="text-2xl font-semibold tracking-tight">SOL/USDC</h2>
               <p className="text-sm text-muted-foreground">Liquidity Position</p>
