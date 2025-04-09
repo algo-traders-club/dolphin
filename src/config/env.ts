@@ -63,6 +63,13 @@ export const config = {
   ENABLE_FILE_LOGGING: getEnvVar('ENABLE_FILE_LOGGING', false) === 'true',
   LOG_DIRECTORY: getEnvVar('LOG_DIRECTORY', false) || 'logs',
   LOG_FILENAME: getEnvVar('LOG_FILENAME', false) || 'cashflow.log',
+  
+  // Rate limiting configuration
+  RATE_LIMIT_ENABLED: getEnvVar('RATE_LIMIT_ENABLED', false) === 'true',
+  RATE_LIMIT_WINDOW_MS: parseInt(getEnvVar('RATE_LIMIT_WINDOW_MS', false) || '60000', 10),
+  RATE_LIMIT_STANDARD_MAX: parseInt(getEnvVar('RATE_LIMIT_STANDARD_MAX', false) || '60', 10),
+  RATE_LIMIT_DATA_MAX: parseInt(getEnvVar('RATE_LIMIT_DATA_MAX', false) || '30', 10),
+  RATE_LIMIT_STATUS_MAX: parseInt(getEnvVar('RATE_LIMIT_STATUS_MAX', false) || '120', 10),
 };
 
 // For backward compatibility

@@ -17,11 +17,17 @@ import { autoRebalancer } from './services/autoRebalancer';
 import { getRebalanceHistory, getRebalanceMetrics } from './services/database/rebalanceService';
 import { config } from './config/env';
 
+// Import rate limiting middleware
+import { createRateLimiters } from './middleware/rateLimit';
+
 // Create a new Hono app
 const app = new Hono();
 
+// Create rate limiters
+const rateLimiters = createRateLimiters();
+
 // Health check endpoint
-app.get('/health', (c) => {
+app.get('/health', rateLimiters.status, (c) => {
   return c.json({
     status: 'ok',
     timestamp: new Date().toISOString(),
@@ -29,7 +35,7 @@ app.get('/health', (c) => {
 });
 
 // API endpoint to get database health
-app.get('/api/db/health', async (c) => {
+app.get('/api/db/health', rateLimiters.standard, async (c) => {
   try {
     await initDatabase();
     return c.json({
@@ -47,7 +53,7 @@ app.get('/api/db/health', async (c) => {
 });
 
 // API endpoint to get position history
-app.get('/api/position/:address/history', async (c) => {
+app.get('/api/position/:address/history', rateLimiters.dataIntensive, async (c) => {
   try {
     const address = c.req.param('address');
     const limit = parseInt(c.req.query('limit') || '100');
@@ -73,7 +79,7 @@ app.get('/api/position/:address/history', async (c) => {
 });
 
 // API endpoint to get transactions
-app.get('/api/transactions', async (c) => {
+app.get('/api/transactions', rateLimiters.dataIntensive, async (c) => {
   try {
     const positionAddress = c.req.query('position');
     const limit = parseInt(c.req.query('limit') || '100');
@@ -91,7 +97,7 @@ app.get('/api/transactions', async (c) => {
 });
 
 // API endpoint to get rebalance history
-app.get('/api/rebalance/history', async (c) => {
+app.get('/api/rebalance/history', rateLimiters.dataIntensive, async (c) => {
   try {
     const positionAddress = c.req.query('position');
     if (!positionAddress) {
@@ -126,7 +132,7 @@ app.get('/api/rebalance/history', async (c) => {
 });
 
 // API endpoint to get rebalance metrics
-app.get('/api/rebalance/metrics', async (c) => {
+app.get('/api/rebalance/metrics', rateLimiters.dataIntensive, async (c) => {
   try {
     const metrics = await getRebalanceMetrics();
     
@@ -149,7 +155,7 @@ app.get('/api/rebalance/metrics', async (c) => {
 });
 
 // API endpoint to get rebalance status
-app.get('/api/rebalance/status', async (c) => {
+app.get('/api/rebalance/status', rateLimiters.standard, async (c) => {
   try {
     const stats = autoRebalancer.getRebalanceStats();
     
@@ -171,7 +177,7 @@ app.get('/api/rebalance/status', async (c) => {
 });
 
 // API endpoint to get agent status
-app.get('/api/status', async (c) => {
+app.get('/api/status', rateLimiters.status, async (c) => {
   try {
     const activePosition = positionState.getActivePosition();
     
