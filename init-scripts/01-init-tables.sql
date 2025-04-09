@@ -59,7 +59,26 @@ CREATE TABLE IF NOT EXISTS transactions (
     details JSONB
 );
 
+-- Create table for rebalance history
+CREATE TABLE IF NOT EXISTS rebalance_history (
+    id SERIAL PRIMARY KEY,
+    position_address TEXT NOT NULL,
+    timestamp TIMESTAMPTZ NOT NULL,
+    success BOOLEAN NOT NULL,
+    transaction_ids TEXT[] NOT NULL,
+    old_range JSONB NOT NULL,
+    new_range JSONB NOT NULL,
+    price_at_rebalance NUMERIC NOT NULL,
+    fees_collected NUMERIC NOT NULL DEFAULT 0,
+    impermanent_loss NUMERIC,
+    details JSONB
+);
+
+-- Create hypertable for rebalance_history
+SELECT create_hypertable('rebalance_history', 'timestamp');
+
 -- Create index on position_address for faster lookups
 CREATE INDEX IF NOT EXISTS idx_positions_address ON positions(position_address);
 CREATE INDEX IF NOT EXISTS idx_position_snapshots_address ON position_snapshots(position_address);
 CREATE INDEX IF NOT EXISTS idx_transactions_signature ON transactions(transaction_signature);
+CREATE INDEX IF NOT EXISTS idx_rebalance_history_address ON rebalance_history(position_address);

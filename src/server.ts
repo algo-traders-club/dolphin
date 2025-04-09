@@ -1,9 +1,11 @@
 import { Hono } from 'hono';
+import { PublicKey } from '@solana/web3.js';
 import { serveStatic } from 'hono/bun';
 import { ENV } from './config/env';
 import { positionState } from './services/positionState';
 import { getOrcaClient, fetchPositionDetails } from './services/orca';
-import { getConnection, getWalletSolBalance } from './services/solana';
+import { getWalletSolBalance } from './services/walletUtils';
+import { networkManager } from './services/networkManager';
 import { getWsolBalance } from './services/tokenUtils';
 import { positionMonitor } from './services/positionMonitor';
 import { checkPositionRangeStatus, PositionRangeStatus, formatFeeAmount } from './utils/positionUtils';
@@ -11,6 +13,9 @@ import * as logger from './utils/logger';
 import { initDatabase } from './services/database';
 import { getRecentSnapshots } from './services/database/positionService';
 import { getRecentWalletBalances, getRecentTransactions } from './services/database/walletService';
+import { autoRebalancer } from './services/autoRebalancer';
+import { getRebalanceHistory, getRebalanceMetrics } from './services/database/rebalanceService';
+import { config } from './config/env';
 
 // Create a new Hono app
 const app = new Hono();
@@ -85,6 +90,86 @@ app.get('/api/transactions', async (c) => {
   }
 });
 
+// API endpoint to get rebalance history
+app.get('/api/rebalance/history', async (c) => {
+  try {
+    const positionAddress = c.req.query('position');
+    if (!positionAddress) {
+      return c.json({
+        status: 'error',
+        message: 'Position address is required',
+      }, 400);
+    }
+    
+    const limit = parseInt(c.req.query('limit') || '10');
+    const history = await getRebalanceHistory(new PublicKey(positionAddress), limit);
+    
+    return c.json({
+      positionAddress,
+      history: history.map(item => ({
+        timestamp: item.timestamp,
+        success: item.success,
+        transactionIds: item.transaction_ids,
+        feesCollected: item.fees_collected,
+        oldRange: item.old_range,
+        newRange: item.new_range,
+        priceAtRebalance: item.price_at_rebalance,
+        impermanentLoss: item.impermanent_loss
+      })),
+    }, 200);
+  } catch (error) {
+    return c.json({
+      status: 'error',
+      message: (error as Error).message,
+    }, 500);
+  }
+});
+
+// API endpoint to get rebalance metrics
+app.get('/api/rebalance/metrics', async (c) => {
+  try {
+    const metrics = await getRebalanceMetrics();
+    
+    return c.json({
+      ...metrics,
+      rebalanceConfig: {
+        enabled: config.REBALANCE_ENABLED,
+        thresholdPercent: config.REBALANCE_THRESHOLD_PERCENT,
+        minIntervalMinutes: config.MIN_REBALANCE_INTERVAL_MINUTES,
+        positionWidthPercent: config.POSITION_WIDTH_PERCENT,
+        maxDailyRebalances: config.MAX_DAILY_REBALANCES
+      }
+    }, 200);
+  } catch (error) {
+    return c.json({
+      status: 'error',
+      message: (error as Error).message,
+    }, 500);
+  }
+});
+
+// API endpoint to get rebalance status
+app.get('/api/rebalance/status', async (c) => {
+  try {
+    const stats = autoRebalancer.getRebalanceStats();
+    
+    return c.json({
+      enabled: config.REBALANCE_ENABLED,
+      lastRebalanceTime: stats.lastRebalanceTime,
+      rebalanceCount: stats.rebalanceCount,
+      rebalanceCountResetTime: stats.rebalanceCountResetTime,
+      positionOutOfRangeSince: stats.positionOutOfRangeSince,
+      maxDailyRebalances: config.MAX_DAILY_REBALANCES,
+      remainingToday: config.MAX_DAILY_REBALANCES - stats.rebalanceCount
+    }, 200);
+  } catch (error) {
+    return c.json({
+      status: 'error',
+      message: (error as Error).message,
+    }, 500);
+  }
+});
+
 // API endpoint to get agent status
 app.get('/api/status', async (c) => {
   try {
@@ -97,6 +182,12 @@ app.get('/api/status', async (c) => {
       timestamp: new Date().toISOString(),
       monitoring: {
         isActive: positionMonitor.isActive(),
+      },
+      rebalancing: {
+        enabled: config.REBALANCE_ENABLED,
+        lastRebalanceTime: autoRebalancer.getRebalanceStats().lastRebalanceTime,
+        rebalanceCount: autoRebalancer.getRebalanceStats().rebalanceCount,
+        maxDailyRebalances: config.MAX_DAILY_REBALANCES
       }
     };
     
