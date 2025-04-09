@@ -1,0 +1,192 @@
+/* 
+ * Modern Neo Bank UI Override Styles
+ * This file contains direct style overrides to ensure proper application of the modern UI
+ */
+
+/* Base font size and styling */
+html {
+  font-size: 16px; /* Base size for rem calculations */
+}
+
+body {
+  font-size: 1.0625rem !important; /* 17px */
+  line-height: 1.45 !important;
+  letter-spacing: -0.0016em !important;
+  color: hsl(220, 30%, 18%) !important;
+  background-color: hsl(210, 25%, 98%) !important;
+  -webkit-font-smoothing: antialiased !important;
+  -moz-osx-font-smoothing: grayscale !important;
+}
+
+/* Typography scale */
+h1 {
+  font-size: 2.5rem !important; /* 40px */
+  line-height: 1.25 !important;
+  font-weight: 300 !important;
+  margin-bottom: 0.5em !important;
+}
+
+h2 {
+  font-size: 2rem !important; /* 32px */
+  line-height: 1.25 !important;
+  font-weight: 300 !important;
+  margin-bottom: 0.5em !important;
+}
+
+h3 {
+  font-size: 1.5rem !important; /* 24px */
+  line-height: 1.25 !important;
+  font-weight: 500 !important;
+  margin-bottom: 0.5em !important;
+}
+
+h4 {
+  font-size: 1.25rem !important; /* 20px */
+  line-height: 1.25 !important;
+  font-weight: 500 !important;
+  margin-bottom: 0.5em !important;
+}
+
+h5 {
+  font-size: 1.0625rem !important; /* 17px */
+  line-height: 1.25 !important;
+  margin-bottom: 0.5em !important;
+}
+
+h6 {
+  font-size: 0.9375rem !important; /* 15px */
+  line-height: 1.25 !important;
+  margin-bottom: 0.5em !important;
+}
+
+p, li, blockquote {
+  font-size: 1.0625rem !important; /* 17px */
+  line-height: 1.45 !important;
+  margin-bottom: 1em !important;
+}
+
+/* Card styling */
+[data-slot="card"] {
+  border-radius: 0.75rem !important;
+  padding: 1.5rem 1rem !important;
+  gap: 1.5rem !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1) !important;
+  background-color: #fff !important;
+  transition: all 0.3s ease !important;
+}
+
+[data-slot="card"]:hover {
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1) !important;
+}
+
+[data-slot="card-title"] {
+  font-size: 1.25rem !important;
+  font-weight: 500 !important;
+  margin-bottom: 0.5rem !important;
+}
+
+[data-slot="card-description"] {
+  font-size: 0.9375rem !important;
+  color: hsl(220, 20%, 45%) !important;
+  line-height: 1.4 !important;
+}
+
+[data-slot="card-content"] {
+  font-size: 1.0625rem !important;
+  line-height: 1.45 !important;
+  padding: 0.5rem 0 !important;
+}
+
+/* Table styling */
+[data-slot="table"] {
+  font-size: 1.0625rem !important;
+  border-collapse: collapse !important;
+}
+
+[data-slot="table-row"] {
+  height: 3.5rem !important;
+}
+
+[data-slot="table-head"] {
+  height: 3rem !important;
+  padding: 0 1rem !important;
+  font-size: 1.0625rem !important;
+  font-weight: 500 !important;
+  border-bottom: 2px solid hsl(210, 25%, 96%) !important;
+}
+
+[data-slot="table-cell"] {
+  padding: 1rem !important;
+  font-size: 1.0625rem !important;
+}
+
+/* Tabs styling */
+[data-slot="tabs"] {
+  gap: 1.5rem !important;
+}
+
+[data-slot="tabs-list"] {
+  height: 3.5rem !important;
+  margin-bottom: 0.5rem !important;
+}
+
+[data-slot="tabs-trigger"] {
+  font-size: 1.0625rem !important;
+  padding: 0.75rem 1.5rem !important;
+  gap: 0.5rem !important;
+}
+
+[data-slot="tabs-trigger"][data-state="active"]::after {
+  height: 3px !important;
+}
+
+[data-slot="tabs-content"] {
+  padding-top: 1.5rem !important;
+  font-size: 1.0625rem !important;
+}
+
+/* Dark mode */
+.dark body {
+  color: hsl(210, 20%, 92%) !important;
+  background-color: hsl(220, 25%, 12%) !important;
+}
+
+.dark [data-slot="card"] {
+  background-color: hsl(220, 25%, 16%) !important;
+  border-color: hsla(228, 35%, 60%, 0.1) !important;
+}
+
+.dark [data-slot="card-description"] {
+  color: hsl(220, 15%, 70%) !important;
+}
+
+.dark [data-slot="table-head"] {
+  border-bottom-color: hsl(220, 25%, 22%) !important;
+}
+
+/* Responsive adjustments */
+@media (min-width: 768px) {
+  h1 {
+    font-size: 3.5rem !important; /* 56px */
+  }
+  
+  h2 {
+    font-size: 2.5rem !important; /* 40px */
+  }
+  
+  h3 {
+    font-size: 2rem !important; /* 32px */
+  }
+  
+  h4 {
+    font-size: 1.5rem !important; /* 24px */
+  }
+  
+  h5 {
+    font-size: 1.25rem !important; /* 20px */
+  }
+  
+  h6 {
+    font-size: 1.125rem !important; /* 18px */
+  }
+}

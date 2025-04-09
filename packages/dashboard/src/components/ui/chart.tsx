@@ -51,7 +51,10 @@ function ChartContainer({
         data-slot="chart"
         data-chart={chartId}
         className={cn(
-          "flex aspect-video justify-center text-xs",
+          "flex aspect-video justify-center text-xs chart-label",
+          "font-variant-numeric-tabular tracking-wide",
+          "text-rendering-optimizeLegibility",
+          "rounded-lg overflow-hidden",
           className
         )}
         {...props}
@@ -111,20 +114,24 @@ const ChartTooltip: React.FC<ChartTooltipProps> = ({ active, payload, label, cla
   }
   
   return (
-    <div className={cn("rounded-lg border bg-background p-2 shadow-sm", className)}>
-      <div className="mb-1 border-b border-border px-2 pb-1 text-sm font-medium">
+    <div className={cn(
+      "rounded-lg border bg-background p-2 shadow-sm", 
+      "text-[11px] tracking-wide font-variant-numeric-tabular",
+      className
+    )}>
+      <div className="mb-1 border-b border-border px-2 pb-1 text-[12px] font-semibold tracking-slightly-tight dark:font-semibold-dark">
         {label}
       </div>
       <div className="px-2">
         {payload.map((entry, index) => (
-          <div key={`item-${index}`} className="flex items-center justify-between space-x-8 text-xs">
+          <div key={`item-${index}`} className="flex items-center justify-between space-x-8 text-[11px] tracking-wide font-variant-numeric-tabular">
             <div className="flex items-center">
               <div className="mr-1">
                 <div className="size-2 rounded-full bg-blue-500" />
               </div>
               <span className="font-medium">{String(entry.name || '')}</span>
             </div>
-            <span>{String(entry.value || '')}</span>
+            <span className="font-mono text-[10px] tabular-nums">{String(entry.value || '')}</span>
           </div>
         ))}
       </div>
@@ -156,7 +163,7 @@ function ChartTooltipContent({
   label?: string;
   labelFormatter?: (label: unknown, payload?: Array<{[key: string]: unknown}>) => React.ReactNode;
   labelClassName?: string;
-  formatter?: (value: unknown, name: string, item: unknown, index: number) => unknown;
+  formatter?: (value: unknown, name: string, item: unknown, index: number) => React.ReactNode;
   color?: string;
   nameKey?: string;
   labelKey?: string;
@@ -208,7 +215,8 @@ function ChartTooltipContent({
   return (
     <div
       className={cn(
-        "border-border/50 bg-background grid min-w-[8rem] items-start gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs shadow-xl",
+        "border-border/50 bg-background/95 backdrop-blur-sm grid min-w-[8rem] items-start gap-2 rounded-lg border px-3 py-2 text-xs shadow-xl",
+        "border-primary/10 dark:border-primary/20",
         className
       )}
     >
@@ -228,7 +236,8 @@ function ChartTooltipContent({
               )}
             >
               {formatter && item?.value !== undefined && item.name ? (
-                formatter(item.value, String(item.name), item, index)
+                // Using a fragment to ensure the formatter result is treated as ReactNode
+                <>{formatter(item.value, String(item.name), item, index)}</>
               ) : (
                 <>
                   {itemConfig?.icon ? (
@@ -263,13 +272,39 @@ function ChartTooltipContent({
                   >
                     <div className="grid gap-1.5">
                       {nestLabel ? tooltipLabel : null}
-                      <span className="text-muted-foreground">
-                        {itemConfig?.label || item.name}
+                      <span className="text-muted-foreground font-medium">
+                        {itemConfig?.label || (item.name ? String(item.name) : '')}
                       </span>
                     </div>
                     {item.value && (
-                      <span className="text-foreground font-mono font-medium tabular-nums">
-                        {typeof item.value === 'number' ? item.value.toLocaleString() : String(item.value)}
+                      <span className="text-foreground font-mono font-semibold tabular-nums">
+                        {(() => {
+                          // Safely convert unknown value to ReactNode with currency formatting
+                          let formattedValue: React.ReactNode = '';
+                          const itemValue = item.value as unknown;
+                          
+                          if (typeof itemValue === 'number') {
+                            // Check if it looks like a currency value
+                            if (item.name && String(item.name).toLowerCase().includes('price') || 
+                                item.name && String(item.name).toLowerCase().includes('value') ||
+                                item.name && String(item.name).toLowerCase().includes('amount')) {
+                              formattedValue = `$${itemValue.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+                            }
+                            // Check if it looks like a percentage
+                            else if (item.name && String(item.name).toLowerCase().includes('percent') || 
+                                     item.name && String(item.name).toLowerCase().includes('rate') ||
+                                     item.name && String(item.name).toLowerCase().includes('change')) {
+                              formattedValue = `${itemValue.toLocaleString(undefined, {minimumFractionDigits: 1, maximumFractionDigits: 1})}%`;
+                            }
+                            // Default number formatting
+                            else {
+                              formattedValue = itemValue.toLocaleString();
+                            }
+                          } else if (itemValue !== null && itemValue !== undefined) {
+                            formattedValue = String(itemValue);
+                          }
+                          return formattedValue;
+                        })()}
                       </span>
                     )}
                   </div>

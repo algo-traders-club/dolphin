@@ -1,0 +1,326 @@
+/* Tailwind directives - these will be processed by the Tailwind compiler */
+/* postcss-import-tailwind-start */
+@import 'tailwindcss/base';
+@import 'tailwindcss/components';
+@import 'tailwindcss/utilities';
+/* postcss-import-tailwind-end */
+
+@layer base {
+  body {
+    font-size: var(--font-size-base);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    font-feature-settings: "ss01", "ss02", "cv01", "cv03";
+    letter-spacing: var(--tracking-normal);
+    line-height: var(--line-height-normal);
+    color: var(--foreground);
+    background-color: hsl(var(--background));
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    font-weight: var(--font-weight-medium);
+    letter-spacing: var(--tracking-tighter);
+    line-height: var(--line-height-tight);
+    margin-bottom: 0.5em;
+  }
+  
+  h1 {
+    font-size: var(--font-size-3xl);
+    font-weight: 300;
+  }
+  
+  h2 {
+    font-size: var(--font-size-2xl);
+    font-weight: 300;
+  }
+  
+  h3 {
+    font-size: var(--font-size-xl);
+  }
+  
+  h4 {
+    font-size: var(--font-size-lg);
+  }
+  
+  h5 {
+    font-size: var(--font-size-base);
+  }
+  
+  h6 {
+    font-size: var(--font-size-sm);
+  }
+  
+  p {
+    margin-bottom: 1em;
+    font-size: var(--font-size-base);
+  }
+  
+  p {
+    line-height: var(--line-height-normal);
+    letter-spacing: var(--tracking-normal);
+  }
+  
+  /* Responsive typography - Modern scale */
+  @media (min-width: 768px) {
+    h1 {
+      font-size: 3.5rem; /* text-6xl */
+    }
+    
+    h2 {
+      font-size: 2.5rem; /* text-5xl */
+    }
+    
+    h3 {
+      font-size: 2rem; /* text-4xl */
+    }
+    
+    h4 {
+      font-size: 1.5rem; /* text-2xl */
+    }
+    
+    h5 {
+      font-size: 1.25rem; /* text-xl */
+    }
+    
+    h6 {
+      font-size: 1.125rem; /* text-lg */
+    }
+  }
+}
+
+:root {
+    --font-sans: var(--font-inter);
+    --font-mono: var(--font-jetbrains-mono);
+    --radius: 0.75rem;
+    --radius-sm: calc(var(--radius) - 2px);
+    --radius-md: var(--radius);
+    --radius-lg: calc(var(--radius) + 2px);
+    --radius-xl: calc(var(--radius) + 4px);
+    
+    /* Typography scale - Modern Neo Bank-inspired */
+    --font-size-xs: 0.8125rem;    /* 13px */
+    --font-size-sm: 0.9375rem;     /* 15px */
+    --font-size-base: 1.0625rem;   /* 17px */
+    --font-size-lg: 1.25rem;       /* 20px */
+    --font-size-xl: 1.5rem;        /* 24px */
+    --font-size-2xl: 2rem;         /* 32px */
+    --font-size-3xl: 2.5rem;       /* 40px */
+    
+    /* Line heights - Modern baseline grid */
+    --line-height-tight: 1.25;    /* Headings */
+    --line-height-normal: 1.45;   /* Body text */
+    --line-height-relaxed: 1.55;  /* Larger text blocks */
+    
+    /* Letter spacing */
+    --tracking-tightest: -0.008em; /* -0.8% */
+    --tracking-tighter: -0.006em;  /* -0.6% */
+    --tracking-tight: -0.004em;    /* -0.4% */
+    --tracking-slightly-tight: -0.002em; /* -0.2% */
+    --tracking-normal: -0.0016em;  /* -0.16% */
+    --tracking-wide: 0.001em;      /* 0.1% */
+    
+    /* Font weights */
+    --font-weight-regular: 400;
+    --font-weight-medium: 500;
+    --font-weight-semibold: 600;
+    
+    /* Neo-bank inspired color palette - Flat and modern */
+    --primary: 228 45% 50%; /* #4B5EAA - enhanced deep indigo */
+    --primary-foreground: 0 0% 100%;
+    --secondary: 142 55% 52%; /* #34C759 - enhanced growth green */
+    --secondary-foreground: 0 0% 100%;
+    
+    /* Flat modern background for a cleaner look */
+    --background: 210 25% 98%; /* #F7F9FC - crisp light gray */
+    --foreground: 220 30% 18%; /* Richer dark text for better contrast */
+    
+    /* Card and UI elements - Flat modern design */
+    --card: 0 0% 100%;
+    --card-foreground: 220 30% 18%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 220 30% 18%;
+    --muted: 210 25% 96%;
+    --muted-foreground: 220 20% 45%;
+    --accent: 25 90% 55%; /* #F4A261 - vibrant orange accent */
+    --accent-foreground: 220 30% 18%;
+    --destructive: 0 85% 60%;
+    --border: 220 15% 92%;
+    --input: 210 25% 96%;
+    --ring: 228 45% 50%;
+    
+    /* Institutional data visualization palette - muted but distinct */
+    --chart-1: 228 40% 48%; /* #4B5EAA - deep indigo */
+    --chart-2: 142 52% 50%; /* #34C759 - growth green */
+    --chart-3: 25 95% 53%; /* #F4A261 - muted orange */
+    --chart-4: 220 9% 46%; /* #6B7280 - muted gray */
+    --chart-5: 199 89% 48%; /* #38BDF8 - light blue */
+    
+    /* Neo-bank sidebar colors */
+    --sidebar: 228 45% 45%;
+    --sidebar-foreground: 0 0% 100%;
+    --sidebar-primary: 142 52% 50%;
+    --sidebar-primary-foreground: 220 25% 20%;
+    --sidebar-accent: 25 95% 53%;
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-border: 228 40% 55%;
+    --sidebar-ring: 142 52% 50%;
+  }
+
+.dark {
+    /* Neo-bank dark mode color palette */
+    --background: 220 25% 12%; /* #1A1C1E - deep background */
+    --foreground: 210 20% 92%; /* #E5E7EB - light text */
+    --card: 220 25% 16%; /* Slightly lighter card background */
+    --card-foreground: 210 20% 92%;
+    --popover: 220 25% 16%;
+    --popover-foreground: 210 20% 92%;
+    --primary: 228 35% 60%; /* Lighter primary for dark mode */
+    --primary-foreground: 0 0% 100%;
+    --secondary: 142 47% 55%; /* Lighter secondary for dark mode */
+    --secondary-foreground: 0 0% 100%;
+    --muted: 220 25% 20%;
+    --muted-foreground: 220 15% 70%; /* Increased contrast */
+    --accent: 25 90% 60%;
+    --accent-foreground: 220 15% 95%;
+    --destructive: 0 84% 60%;
+    --border: 220 25% 22%; /* #374151 - softer borders */
+    --input: 220 25% 20%;
+    --ring: 228 35% 60%;
+    --chart-1: 228 35% 60%;
+    --chart-2: 142 47% 55%;
+    --chart-3: 25 90% 60%;
+    --chart-4: 220 15% 70%;
+    --chart-5: 199 85% 55%;
+    --sidebar: 220 25% 10%; /* Darker sidebar */
+    --sidebar-foreground: 210 20% 92%;
+    --sidebar-primary: 228 35% 60%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 220 25% 20%;
+    --sidebar-accent-foreground: 210 20% 92%;
+    --sidebar-border: 220 25% 15%;
+    --sidebar-ring: 228 35% 60%;
+    
+    /* Dark mode typography adjustments */
+    --tracking-adjustment: 0.0002em; /* +0.02em letter spacing */
+    --line-height-adjustment: 0.05;  /* +5% line height */
+    
+    /* Reduced font weights for dark mode */
+    --font-weight-semibold-dark: 550; /* Reduced from 600 */
+    --font-weight-medium-dark: 450;   /* Reduced from 500 */
+}
+
+/* Base styles */
+* {
+  border-color: hsla(var(--border));
+  outline-color: hsla(var(--ring));
+}
+
+body {
+  font-feature-settings: "ss01", "ss03", "cv02", "cv11";
+  font-variant-ligatures: common-ligatures;
+  text-rendering: optimizeLegibility;
+  background-color: hsla(var(--background));
+  color: hsla(var(--foreground));
+}
+
+/* Component-specific typography */
+.card-title {
+  font-weight: var(--font-weight-semibold);
+}
+
+.card-description {
+  font-size: 0.8125rem; /* 13px */
+  line-height: 1.4;
+}
+
+/* Table typography with tabular figures */
+table {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Chart typography */
+.chart-label {
+  font-size: 0.6875rem; /* 11px */
+  letter-spacing: var(--tracking-wide);
+  line-height: 1;
+}
+
+/* Card enhancements */
+.card {
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.card:hover {
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  transform: translateY(-1px);
+}
+
+/* Color utility classes */
+.bg-primary {
+  background-color: hsla(var(--primary));
+}
+
+.text-primary {
+  color: hsla(var(--primary));
+}
+
+.bg-secondary {
+  background-color: hsla(var(--secondary));
+}
+
+.text-secondary {
+  color: hsla(var(--secondary));
+}
+
+.bg-accent {
+  background-color: hsla(var(--accent));
+}
+
+.text-accent {
+  color: hsla(var(--accent));
+}
+
+.bg-sidebar {
+  background-color: var(--sidebar);
+}
+
+.text-sidebar-foreground {
+  color: var(--sidebar-foreground);
+}
+
+.border-sidebar-border {
+  border-color: var(--sidebar-border);
+}
+
+.bg-card {
+  background-color: hsla(var(--card));
+}
+
+.text-card-foreground {
+  color: hsla(var(--card-foreground));
+}
+
+.text-muted-foreground {
+  color: hsla(var(--muted-foreground));
+}
+
+.text-chart-1 {
+  color: var(--chart-1);
+}
+
+.text-chart-2 {
+  color: var(--chart-2);
+}
+
+.text-chart-3 {
+  color: var(--chart-3);
+}
+
+.text-chart-4 {
+  color: var(--chart-4);
+}
+
+.text-chart-5 {
+  color: var(--chart-5);
+}

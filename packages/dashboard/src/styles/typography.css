@@ -1,0 +1,179 @@
+/* 
+ * Nexwave Dashboard Typography System
+ * Apple/Neobank-inspired typography with modern minimalism and functional elegance
+ */
+
+/* Typography styles */
+:root {
+  /* Font family variables */
+  --font-sans: var(--font-inter);
+  --font-mono: var(--font-jetbrains-mono);
+  
+  /* Typography scale - Modern Neo Bank-inspired */
+  --font-size-xs: 0.8125rem;    /* 13px */
+  --font-size-sm: 0.9375rem;     /* 15px */
+  --font-size-base: 1.0625rem;   /* 17px */
+  --font-size-lg: 1.25rem;       /* 20px */
+  --font-size-xl: 1.5rem;        /* 24px */
+  --font-size-2xl: 2rem;         /* 32px */
+  --font-size-3xl: 2.5rem;       /* 40px */
+  
+  /* Line heights - Modern baseline grid */
+  --line-height-tight: 1.25;    /* Headings */
+  --line-height-normal: 1.45;   /* Body text */
+  --line-height-relaxed: 1.55;  /* Larger text blocks */
+  
+  /* Letter spacing */
+  --tracking-tightest: -0.008em; /* -0.8% */
+  --tracking-tighter: -0.006em;  /* -0.6% */
+  --tracking-tight: -0.004em;    /* -0.4% */
+  --tracking-slightly-tight: -0.002em; /* -0.2% */
+  --tracking-normal: -0.0016em;  /* -0.16% */
+  --tracking-wide: 0.001em;      /* 0.1% */
+  
+  /* Font weights */
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 700;
+  
+  /* Dark mode adjustments - will be applied in dark mode */
+  --tracking-adjustment: 0.0002em; /* +0.02em */
+  --line-height-adjustment: 0.05;  /* +5% */
+}
+  
+/* Global text rendering optimizations */
+body {
+  text-rendering: optimizeLegibility;
+  font-optical-sizing: auto;
+  font-feature-settings: "ss01", "ss03", "cv02", "cv11";
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+  
+/* Typography hierarchy system - Use globals.css definitions */
+/* These are commented out to prevent overriding globals.css
+h1 {
+  font-size: var(--font-size-3xl);
+  line-height: calc(var(--font-size-3xl) * var(--line-height-tight));
+  font-weight: 300;
+  letter-spacing: var(--tracking-tightest);
+  margin-bottom: 0.5em;
+}
+
+h2 {
+  font-size: var(--font-size-2xl);
+  line-height: calc(var(--font-size-2xl) * var(--line-height-tight));
+  font-weight: 300;
+  letter-spacing: var(--tracking-tighter);
+  margin-bottom: 0.5em;
+}
+
+h3 {
+  font-size: var(--font-size-xl);
+  line-height: calc(var(--font-size-xl) * var(--line-height-tight));
+  font-weight: var(--font-weight-medium);
+  letter-spacing: var(--tracking-tight);
+  margin-bottom: 0.5em;
+}
+
+h4 {
+  font-size: var(--font-size-lg);
+  line-height: calc(var(--font-size-lg) * var(--line-height-tight));
+  font-weight: var(--font-weight-medium);
+  letter-spacing: var(--tracking-slightly-tight);
+  margin-bottom: 0.5em;
+}
+
+h5 {
+  font-size: var(--font-size-base);
+  line-height: calc(var(--font-size-base) * var(--line-height-tight));
+  font-weight: var(--font-weight-regular);
+  margin-bottom: 0.5em;
+}
+
+h6 {
+  font-size: var(--font-size-sm);
+  line-height: calc(var(--font-size-sm) * var(--line-height-tight));
+  font-weight: var(--font-weight-regular);
+  margin-bottom: 0.5em;
+}
+*/
+
+/* Use globals.css definitions for basic text elements
+p, li, blockquote {
+  font-size: var(--font-size-base);
+  line-height: var(--line-height-normal);
+  font-weight: 400;
+  letter-spacing: var(--tracking-normal);
+  margin-bottom: 1em;
+}
+*/
+  
+/* Component-specific typography */
+.card-title {
+  font-weight: var(--font-weight-semibold);
+}
+
+.card-description {
+  font-size: 0.8125rem; /* 13px */
+  line-height: 1.4;
+}
+
+/* Use tabular figures universally for all numbers for institutional precision */
+table, .number, [data-numeric], .price, .amount, .percentage, .stat {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Chart typography */
+.chart-label {
+  font-size: 0.6875rem; /* 11px */
+  letter-spacing: var(--tracking-wide);
+  line-height: 1;
+}
+
+/* Button typography */
+button, .button {
+  font-weight: var(--font-weight-medium);
+  letter-spacing: var(--tracking-slightly-tight);
+}
+
+/* Code and monospace text */
+code, pre, .mono {
+  font-family: var(--font-mono);
+  font-variant-ligatures: common-ligatures;
+}
+  
+/* Dark mode typography adjustments */
+.dark h1, 
+.dark h2, 
+.dark h3, 
+.dark h4, 
+.dark h5, 
+.dark h6, 
+.dark p, 
+.dark li, 
+.dark blockquote {
+  letter-spacing: calc(var(--tracking-normal) + var(--tracking-adjustment));
+  line-height: calc(var(--line-height-normal) + var(--line-height-adjustment));
+}
+
+/* Subtle gradients in dark mode for a premium feel */
+.dark h1, .dark h2 {
+  background: linear-gradient(90deg, #ffffff, #d1d5db);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  font-weight: 700;
+}
+
+.dark h3, 
+.dark h4 {
+  font-weight: 450; /* Reduced from 500 */
+}
+
+/* Subtle text shadows for depth in light mode */
+@media (prefers-color-scheme: light) {
+  h1, h2, h3 {
+    text-shadow: 0 0.5px 0.5px rgba(0, 0, 0, 0.1);
+  }
+}
