@@ -1,0 +1,12 @@
+{
+  "positionAddress": "C8mYETsFRa895c8re4oHnY7xHkKCgLDcGGTj5iXmFFs8",
+  "positionMint": "FTXZcrrLRJGEpGWTpw4MGv2ofe7dc514CTwAiigzFSuF",
+  "whirlpoolAddress": "HJPjoWUrhoZzkNfRpHuieeFk9WcZWjwy6PBjZ81ngndJ",
+  "tickLowerIndex": -39104,
+  "tickUpperIndex": -22976,
+  "liquidity": "1",
+  "createdAt": "2025-04-09T03:07:09.904Z",
+  "feeOwedA": "0",
+  "feeOwedB": "0",
+  "lastUpdatedAt": "2025-04-09T03:07:12.270Z"
+}

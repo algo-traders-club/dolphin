@@ -44,6 +44,9 @@ export const ENV = {
   DEFAULT_POSITION_UPPER_PRICE: parseFloat(getEnvVar('DEFAULT_POSITION_UPPER_PRICE', false) || '0.05'),
   DEFAULT_LIQUIDITY_AMOUNT_USDC: parseFloat(getEnvVar('DEFAULT_LIQUIDITY_AMOUNT_USDC', false) || '10'),
   
+  // Database configuration
+  DATABASE_URL: getEnvVar('DATABASE_URL', false) || 'postgres://postgres:postgres@timescaledb:5432/cashflow',
+  
   // Server configuration
   PORT: parseInt(getEnvVar('PORT', false) || '3000', 10),
   HOST: getEnvVar('HOST', false) || '0.0.0.0',

@@ -41,10 +41,12 @@
     "decimal.js": "^10.4.3",
     "dotenv": "^16.3.1",
     "hono": "^3.11.7",
+    "pg": "^8.11.3",
     "tweetnacl": "^1.0.3"
   },
   "devDependencies": {
     "@types/bun": "latest",
+    "@types/pg": "^8.10.9",
     "@typescript-eslint/eslint-plugin": "^6.13.2",
     "@typescript-eslint/parser": "^6.13.2",
     "eslint": "^8.55.0",

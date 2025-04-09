@@ -20,6 +20,8 @@ A TypeScript-based automated agent for managing liquidity positions in Orca Whir
 - **Runtime**: Bun
 - **Language**: TypeScript
 - **Web Framework**: Hono
+- **Database**: PostgreSQL with TimescaleDB extension
+- **Containerization**: Docker & Docker Compose
 - **Blockchain**: Solana
 - **SDKs**: 
   - `@solana/web3.js`
@@ -80,6 +82,9 @@ DEFAULT_LIQUIDITY_AMOUNT_USDC=10
 # Server configuration
 PORT=3000
 HOST=0.0.0.0
+
+# Database configuration
+DATABASE_URL=postgres://postgres:postgres@timescaledb:5432/cashflow
 ```
 
 **Important Security Note**: Never commit your `.env` file with real private keys to version control.
@@ -127,6 +132,30 @@ bun run src/server.ts
 The server provides the following endpoints:
 - `GET /health` - Health check endpoint
 - `GET /api/status` - Get the current status of the agent and any active position
+- `GET /api/db/health` - Check database connection status
+- `GET /api/position/:address/history` - Get position history data
+- `GET /api/transactions` - Get transaction history
+
+### Run with Docker
+
+The application can be run using Docker and Docker Compose, which includes PostgreSQL with TimescaleDB extension for time-series data storage.
+
+```bash
+# Build and start the containers
+docker-compose up -d
+
+# View logs
+docker-compose logs -f
+
+# Stop the containers
+docker-compose down
+```
+
+The Docker setup includes:
+- Application container running on port 3000
+- TimescaleDB container running on port 5432
+- Persistent volume for database data
+- Automatic database initialization with required tables and hypertables
 
 ### Development
 
@@ -151,6 +180,10 @@ bun run build
 ├── src/
 │   ├── config/       # Configuration and environment variables
 │   ├── services/     # Core services for Solana, Orca, and position management
+│   │   ├── database/           # Database services
+│   │   │   ├── index.ts              # Database connection pool
+│   │   │   ├── positionService.ts    # Position data persistence
+│   │   │   └── walletService.ts      # Wallet and transaction data
 │   │   ├── liquidityManager.ts  # Position management functions
 │   │   ├── orca.ts              # Orca Whirlpool interactions
 │   │   ├── positionMonitor.ts   # Position monitoring service
@@ -160,6 +193,9 @@ bun run build
 │   ├── utils/        # Utility functions
 │   ├── main.ts       # Command-line interface and execution
 │   └── server.ts     # Hono API server
+├── docker-compose.yml # Docker Compose configuration
+├── Dockerfile        # Docker container definition
+├── init-scripts/     # Database initialization scripts
 ├── .env              # Environment variables (not committed)
 ├── wallet.json       # Wallet configuration (not committed)
 ├── .eslintrc.json    # ESLint configuration
@@ -173,6 +209,12 @@ bun run build
 MIT
 
 ## Recent Updates
+
+- Added Docker support with PostgreSQL and TimescaleDB for time-series data storage
+  - Containerized application with Docker and Docker Compose
+  - Added TimescaleDB for efficient time-series data storage
+  - Implemented database services for position, wallet, and transaction data
+  - Added new API endpoints for historical data access
 
 - Added small liquidity option to reduce SOL requirements for transactions
   - New `position:add:small` command for adding a smaller amount of liquidity (5.0 USDC)

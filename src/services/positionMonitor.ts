@@ -8,6 +8,7 @@ import { fetchPositionDetails, fetchWhirlpoolData } from './orca';
 import { positionState } from './positionState';
 import { checkPositionRangeStatus, PositionRangeStatus, formatFeeAmount } from '../utils/positionUtils';
 import * as logger from '../utils/logger';
+import { savePositionSnapshot } from './database/positionService';
 
 // Default monitoring interval (60 seconds)
 const DEFAULT_MONITOR_INTERVAL_MS = 60 * 1000;
@@ -119,6 +120,38 @@ async function monitorActivePosition(): Promise<void> {
     logger.info(`- Liquidity: ${updatedPosition.liquidity.toString()}`);
     logger.info(`- Fees Owed: ${formattedFeeA} USDC, ${formattedFeeB} SOL`);
     logger.info(`- Last Updated: ${updatedPosition.lastUpdatedAt.toISOString()}`);
+    
+    // Save position snapshot to database
+    try {
+      logger.info('Attempting to save position snapshot to database...');
+      const snapshotData = {
+        positionAddress: new PublicKey(position.positionAddress),
+        whirlpoolAddress: new PublicKey(position.whirlpoolAddress),
+        tickCurrentIndex: currentTick,
+        rangeStatus: rangeStatus,
+        liquidity: updatedPosition.liquidity,
+        feeOwedA: updatedPosition.feeOwedA,
+        feeOwedB: updatedPosition.feeOwedB,
+        timestamp: new Date()
+      };
+      
+      logger.debug(`Snapshot data: ${JSON.stringify({
+        positionAddress: snapshotData.positionAddress.toString(),
+        whirlpoolAddress: snapshotData.whirlpoolAddress.toString(),
+        tickCurrentIndex: snapshotData.tickCurrentIndex,
+        rangeStatus: snapshotData.rangeStatus,
+        liquidity: snapshotData.liquidity.toString(),
+        feeOwedA: snapshotData.feeOwedA.toString(),
+        feeOwedB: snapshotData.feeOwedB.toString(),
+        timestamp: snapshotData.timestamp
+      })}`);
+      
+      await savePositionSnapshot(snapshotData);
+      logger.info('Position snapshot saved to database successfully');
+    } catch (dbError) {
+      logger.error(`Error saving position snapshot to database: ${dbError}`);
+      // Continue even if database save fails
+    }
     
   } catch (error) {
     logger.error('Error monitoring position:', error);

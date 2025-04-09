@@ -8,6 +8,9 @@ import { getWsolBalance } from './services/tokenUtils';
 import { positionMonitor } from './services/positionMonitor';
 import { checkPositionRangeStatus, PositionRangeStatus, formatFeeAmount } from './utils/positionUtils';
 import * as logger from './utils/logger';
+import { initDatabase } from './services/database';
+import { getRecentSnapshots } from './services/database/positionService';
+import { getRecentWalletBalances, getRecentTransactions } from './services/database/walletService';
 
 // Create a new Hono app
 const app = new Hono();
@@ -18,6 +21,68 @@ app.get('/health', (c) => {
     status: 'ok',
     timestamp: new Date().toISOString(),
   }, 200);
+});
+
+// API endpoint to get database health
+app.get('/api/db/health', async (c) => {
+  try {
+    await initDatabase();
+    return c.json({
+      status: 'ok',
+      message: 'Database connection successful',
+      timestamp: new Date().toISOString(),
+    }, 200);
+  } catch (error) {
+    return c.json({
+      status: 'error',
+      message: (error as Error).message,
+      timestamp: new Date().toISOString(),
+    }, 500);
+  }
+});
+
+// API endpoint to get position history
+app.get('/api/position/:address/history', async (c) => {
+  try {
+    const address = c.req.param('address');
+    const limit = parseInt(c.req.query('limit') || '100');
+    const snapshots = await getRecentSnapshots(address, limit);
+    
+    return c.json({
+      positionAddress: address,
+      snapshots: snapshots.map(s => ({
+        timestamp: s.timestamp,
+        tickCurrentIndex: s.tickCurrentIndex,
+        rangeStatus: s.rangeStatus,
+        liquidity: s.liquidity.toString(),
+        feeOwedA: s.feeOwedA.toString(),
+        feeOwedB: s.feeOwedB.toString(),
+      })),
+    }, 200);
+  } catch (error) {
+    return c.json({
+      status: 'error',
+      message: (error as Error).message,
+    }, 500);
+  }
+});
+
+// API endpoint to get transactions
+app.get('/api/transactions', async (c) => {
+  try {
+    const positionAddress = c.req.query('position');
+    const limit = parseInt(c.req.query('limit') || '100');
+    const transactions = await getRecentTransactions(limit, positionAddress || null);
+    
+    return c.json({
+      transactions,
+    }, 200);
+  } catch (error) {
+    return c.json({
+      status: 'error',
+      message: (error as Error).message,
+    }, 500);
+  }
 });
 
 // API endpoint to get agent status
@@ -103,6 +168,15 @@ app.get('/api/status', async (c) => {
 const port = ENV.PORT;
 const host = ENV.HOST;
 
+// Initialize the database connection
+initDatabase()
+  .then(() => {
+    logger.info('Database connection initialized successfully');
+  })
+  .catch((error) => {
+    logger.error('Failed to initialize database connection:', error);
+  });
+
 // Start position monitoring if there's an active position
 if (positionState.hasActivePosition()) {
   logger.info('Starting position monitoring for existing active position');
@@ -110,19 +184,37 @@ if (positionState.hasActivePosition()) {
 }
 
 // Handle graceful shutdown
-process.on('SIGINT', () => {
+process.on('SIGINT', async () => {
   logger.info('Received SIGINT signal, shutting down gracefully');
   if (positionMonitor.isActive()) {
     positionMonitor.stop();
   }
+  
+  // Close database connections
+  try {
+    const { closePool } = await import('./services/database');
+    await closePool();
+  } catch (error) {
+    logger.error('Error closing database pool:', error);
+  }
+  
   process.exit(0);
 });
 
-process.on('SIGTERM', () => {
+process.on('SIGTERM', async () => {
   logger.info('Received SIGTERM signal, shutting down gracefully');
   if (positionMonitor.isActive()) {
     positionMonitor.stop();
   }
+  
+  // Close database connections
+  try {
+    const { closePool } = await import('./services/database');
+    await closePool();
+  } catch (error) {
+    logger.error('Error closing database pool:', error);
+  }
+  
   process.exit(0);
 });
 

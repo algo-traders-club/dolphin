@@ -1,0 +1,52 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3001:3000"
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=postgres://postgres:postgres@timescaledb:5432/cashflow
+      - SOLANA_RPC_URL=${SOLANA_RPC_URL}
+      - WALLET_PRIVATE_KEY=${WALLET_PRIVATE_KEY}
+      - WHIRLPOOL_PROGRAM_ID=${WHIRLPOOL_PROGRAM_ID}
+      - USDC_SOL_WHIRLPOOL_ADDRESS=${USDC_SOL_WHIRLPOOL_ADDRESS}
+      - SOL_MINT=${SOL_MINT}
+      - USDC_MINT=${USDC_MINT}
+      - DEFAULT_POSITION_LOWER_PRICE=${DEFAULT_POSITION_LOWER_PRICE}
+      - DEFAULT_POSITION_UPPER_PRICE=${DEFAULT_POSITION_UPPER_PRICE}
+      - DEFAULT_LIQUIDITY_AMOUNT_USDC=${DEFAULT_LIQUIDITY_AMOUNT_USDC}
+      - PORT=3000
+      - HOST=0.0.0.0
+    depends_on:
+      timescaledb:
+        condition: service_healthy
+    restart: unless-stopped
+    volumes:
+      - ./data:/app/data
+
+  timescaledb:
+    image: timescale/timescaledb:latest-pg14
+    ports:
+      - "5433:5432"
+    environment:
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_USER=postgres
+      - POSTGRES_DB=cashflow
+    volumes:
+      - timescaledb_data:/var/lib/postgresql/data
+      - ./init-scripts:/docker-entrypoint-initdb.d
+    restart: unless-stopped
+    command: postgres -c shared_preload_libraries=timescaledb
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  timescaledb_data:
+    driver: local
