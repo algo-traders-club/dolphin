@@ -15,6 +15,9 @@ A TypeScript-based automated agent for managing liquidity positions in Orca Whir
 - Auto-rebalancing mechanism for optimizing positions when out of range
 - API endpoints for monitoring agent status and rebalancing metrics
 - Robust error handling with retry logic for RPC rate limits
+- Centralized network management with connection caching
+- Enhanced logging system with configurable levels and file rotation
+- Modular code architecture for improved maintainability
 
 ## Tech Stack
 
@@ -24,6 +27,8 @@ A TypeScript-based automated agent for managing liquidity positions in Orca Whir
 - **Database**: PostgreSQL with TimescaleDB extension
 - **Containerization**: Docker & Docker Compose
 - **Blockchain**: Solana
+- **Architecture**: Modular command pattern
+- **Deployment**: AWS Lightsail Containers (see DEPLOYMENT.md)
 - **SDKs**: 
   - `@solana/web3.js`
   - `@orca-so/whirlpools-sdk` (v0.13.19)
@@ -196,6 +201,33 @@ Build the project:
 bun run build
 ```
 
+## Code Architecture
+
+The application follows a modular architecture for improved maintainability and testability:
+
+### Core Modules
+
+- **Commands**: Located in `src/commands/`, contains all CLI commands organized by functionality:
+  - `position.ts` - Position management commands
+  - `rebalance.ts` - Auto-rebalancing commands
+  - `lifecycle.ts` - Full lifecycle demo
+  - `cli.ts` - Command parsing and execution
+
+- **Services**: Located in `src/services/`, provides core functionality:
+  - `networkManager.ts` - Centralized Solana network connection management
+  - `positionMonitor.ts` - Position monitoring and status tracking
+  - `autoRebalancer.ts` - Auto-rebalancing logic
+  - `liquidityManager.ts` - Liquidity position management
+  - `orca.ts` - Orca Whirlpool interactions
+  - Database services in `src/services/database/`
+
+- **Utils**: Located in `src/utils/`, contains utility functions:
+  - `logger.ts` - Enhanced logging system
+  - `positionUtils.ts` - Position-related utilities
+
+- **Config**: Located in `src/config/`, contains configuration:
+  - `env.ts` - Environment variable management
+
 ## Auto-Rebalancing Mechanism
 
 The agent includes an auto-rebalancing mechanism that optimizes liquidity positions when they go out of range, focusing on capital efficiency and minimizing transaction costs.
@@ -286,18 +318,44 @@ The Orca Liquidity Agent is designed with a containerized architecture using Doc
 └── tsconfig.json     # TypeScript configuration
 ```
 
+## Deployment
+
+For detailed deployment instructions to AWS Lightsail containers, see [DEPLOYMENT.md](DEPLOYMENT.md).
+
 ## License
 
 MIT
 
 ## Recent Updates
 
+### v0.3.0 (2025-04-08)
+- Refactored codebase for improved maintainability and deployment
+  - Modularized command structure for better organization
+  - Enhanced build process for Node.js compatibility
+  - Added AWS Lightsail deployment documentation
+  - Implemented production-ready Docker configuration
+- Improved system reliability and monitoring
+  - Centralized network management with connection caching
+  - Enhanced logging system with file rotation
+  - Added comprehensive error handling with retry logic
+
+### v0.2.0 (2025-04-01)
+- Added auto-rebalancing mechanism for optimizing positions when out of range
+  - Implemented threshold-based rebalancing logic
+  - Added configurable parameters for rebalancing
+  - Created database tracking for rebalance history
+  - Added API endpoints for rebalancing metrics
+
+### v0.1.0 (2025-03-15)
+- Initial release with basic liquidity management features
+  - Position creation, monitoring, and management
+  - Fee claiming and position closing
+  - Basic API for status monitoring
 - Added Docker support with PostgreSQL and TimescaleDB for time-series data storage
   - Containerized application with Docker and Docker Compose
   - Added TimescaleDB for efficient time-series data storage
   - Implemented database services for position, wallet, and transaction data
   - Added new API endpoints for historical data access
-
 - Added small liquidity option to reduce SOL requirements for transactions
   - New `position:add:small` command for adding a smaller amount of liquidity (5.0 USDC)
   - Improved error handling for insufficient SOL balance with detailed feedback
