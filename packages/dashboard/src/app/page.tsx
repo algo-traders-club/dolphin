@@ -90,9 +90,9 @@ export default function Home() {
   return (
     <DashboardLayout>
       <div className="flex flex-col space-y-8">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-card p-6 rounded-lg shadow-sm border-0">
-          <div className="flex items-center">
-            <h2 className="text-2xl font-semibold tracking-tight">SOL/USDC <span className="text-muted-foreground font-normal">Liquidity Position</span></h2>
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-card py-5 px-6 rounded-lg shadow-sm border-0">
+          <div className="flex items-center my-auto">
+            <h2 className="text-2xl font-semibold tracking-tight my-0">SOL/USDC <span className="text-muted-foreground font-normal">Liquidity Position</span></h2>
           </div>
           <div className="flex items-center space-x-3">
             <ClientThemeToggle />
