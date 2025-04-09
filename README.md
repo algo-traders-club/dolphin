@@ -11,6 +11,7 @@ A TypeScript-based automated agent for managing liquidity positions in Orca Whir
 - Remove liquidity from positions
 - Close positions
 - Position monitoring with status updates
+- Position state persistence across application restarts
 - API endpoints for monitoring agent status
 - Robust error handling with retry logic for RPC rate limits
 
@@ -22,7 +23,9 @@ A TypeScript-based automated agent for managing liquidity positions in Orca Whir
 - **Blockchain**: Solana
 - **SDKs**: 
   - `@solana/web3.js`
-  - `@orca-so/whirlpools-sdk`
+  - `@orca-so/whirlpools-sdk` (v0.13.19)
+  - `@orca-so/common-sdk` (v0.3.3)
+  - `@orca-so/whirlpools` (v1.1.0)
   - `@project-serum/anchor`
   - `@solana/spl-token`
 
@@ -100,6 +103,9 @@ bun run position:check
 # Monitor position in real-time
 bun run position:monitor
 
+# Set an existing position as active
+bun run position:set -- --address <position-address>
+
 # Claim fees from a position
 bun run position:claim
 
@@ -168,11 +174,55 @@ MIT
 
 ## Recent Updates
 
-- Added support for Solana Mainnet
+- Added small liquidity option to reduce SOL requirements for transactions
+  - New `position:add:small` command for adding a smaller amount of liquidity (5.0 USDC)
+  - Improved error handling for insufficient SOL balance with detailed feedback
+  - Added pre-transaction SOL balance checking to avoid transaction failures
+  - Enhanced error detection for liquidity-related errors
+- Upgraded Orca SDK from v0.11.0 to v0.13.19 for improved compatibility and features
+  - Updated transaction handling in all liquidity functions to use the latest SDK patterns
+  - Modified position operations to use the new transaction building and execution methods
+  - Implemented a workaround for position closing due to SDK changes
+- Enhanced transaction reliability with timeout handling and graceful recovery:
+  - Added transaction timeouts to prevent hanging operations
+  - Implemented graceful recovery from transaction failures
+  - Added pre-transaction validation to avoid unnecessary blockchain calls
+  - Improved error handling with detailed logging and user feedback
+- Implemented position state persistence to disk, allowing the agent to remember positions across restarts
+- Added support for Solana Mainnet with Helius RPC endpoint
 - Implemented robust error handling and retry logic for RPC rate limits
-- Enhanced transaction handling with proper blockhash management
+- Enhanced transaction handling with proper blockhash management and confirmation tracking
 - Improved wallet implementation with support for both legacy and versioned transactions
 - Added position monitoring functionality with real-time status updates
+
+## Position State Persistence
+
+The agent now maintains position state across application restarts by saving position data to disk. This allows you to:
+
+- Restart the agent without losing track of your active positions
+- Automatically load the last active position when the agent starts
+- Continue managing existing positions even after application restarts
+- Track position performance over time with historical data
+
+Position data is stored in `src/data/position.json` and includes comprehensive details such as:
+- Position address and mint
+- Whirlpool address
+- Tick range (price range)
+- Liquidity amount
+- Fee amounts for both tokens
+- Creation and last updated timestamps
+- Current position status (in-range, above-range, below-range)
+
+### How Position State Works
+
+The position state management system uses a singleton `PositionStateManager` class that:
+
+1. Loads position data from disk on startup
+2. Updates position data in memory during operations
+3. Persists changes to disk after each operation
+4. Clears position data when positions are closed
+
+This ensures that your liquidity positions are always tracked correctly, even if the application is restarted or encounters errors.
 
 ---
 

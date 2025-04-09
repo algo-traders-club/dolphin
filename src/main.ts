@@ -90,8 +90,9 @@ async function cmdOpenPosition() {
 
 /**
  * Command to add liquidity to a position
+ * @param smallAmount If true, adds a very small amount of liquidity that requires less SOL
  */
-async function cmdAddLiquidity() {
+async function cmdAddLiquidity(smallAmount = false) {
   try {
     if (!positionState.hasActivePosition()) {
       throw new Error('No active position found. Please open a position first.');
@@ -109,22 +110,71 @@ async function cmdAddLiquidity() {
       await wrapSol(0.02);
     }
     
-    // Add liquidity using USDC amount
-    const usdcAmount = new Decimal(ENV.DEFAULT_LIQUIDITY_AMOUNT_USDC);
+    // Get USDC balance
+    const usdcBalance = await getTokenBalanceWithRetry(new PublicKey(ENV.USDC_MINT!));
+    logger.info(`Available USDC balance: ${usdcBalance}`);
+    
+    // Determine the amount of USDC to use for liquidity
+    let usdcAmount: Decimal;
+    
+    if (smallAmount) {
+      // Use a small amount that requires less SOL but is still enough to create liquidity (5.0 USDC)
+      usdcAmount = new Decimal(5.0);
+      logger.info(`Using small liquidity amount (${usdcAmount} USDC) to minimize SOL requirements`);
+    } else {
+      // Use the default amount from environment variables
+      usdcAmount = new Decimal(ENV.DEFAULT_LIQUIDITY_AMOUNT_USDC);
+      logger.info(`Using default liquidity amount: ${usdcAmount} USDC`);
+    }
+    
+    // Make sure we don't try to add more than available
+    if (usdcBalance && usdcAmount.greaterThan(usdcBalance)) {
+      logger.warn(`Requested amount (${usdcAmount}) exceeds available USDC balance (${usdcBalance}). Using available balance instead.`);
+      usdcAmount = new Decimal(usdcBalance);
+    }
+    
     logger.info(`Adding ${usdcAmount} USDC worth of liquidity...`);
     
-    await addLiquidity(position.positionAddress, usdcAmount);
-    logger.info('Liquidity added successfully!');
-    
-    // Update position details
-    const positionDetails = await fetchPositionDetails(position.positionAddress);
-    positionState.updatePositionDetails({
-      liquidity: positionDetails.liquidity,
-      feeOwedA: positionDetails.feeOwedA,
-      feeOwedB: positionDetails.feeOwedB
-    });
-    
-    return { success: true };
+    try {
+      await addLiquidity(position.positionAddress, usdcAmount);
+      logger.info('Liquidity added successfully!');
+      
+      // Update position details
+      const positionDetails = await fetchPositionDetails(position.positionAddress);
+      positionState.updatePositionDetails({
+        liquidity: positionDetails.liquidity,
+        feeOwedA: positionDetails.feeOwedA,
+        feeOwedB: positionDetails.feeOwedB
+      });
+      
+      return { success: true };
+    } catch (error: any) {
+      // Check if this is a liquidity too small error
+      if (error.message && error.message.includes('liquidity amount is too small')) {
+        if (smallAmount) {
+          // Even the small amount is too small
+          logger.warn('The small liquidity amount (5.0 USDC) is still too small to create liquidity.');
+          logger.warn('Try increasing the amount to at least 10.0 USDC.');
+        } else {
+          // Default amount is too small
+          logger.warn('The liquidity amount is too small to create liquidity.');
+          logger.warn('Try increasing the DEFAULT_LIQUIDITY_AMOUNT_USDC value in your .env file.');
+        }
+      }
+      // Check if this is an insufficient SOL error
+      else if (error.message && error.message.includes('Insufficient SOL balance')) {
+        if (!smallAmount) {
+          // Suggest trying with a smaller amount
+          logger.warn('Insufficient SOL for the requested liquidity amount.');
+          logger.warn('You can try adding a smaller amount of liquidity by using the position:add:small command.');
+        } else {
+          // Even the small amount requires too much SOL
+          logger.error('Even a small liquidity amount requires more SOL than available in your wallet.');
+          logger.error('Please add more SOL to your wallet before proceeding.');
+        }
+      }
+      throw error;
+    }
   } catch (error) {
     logger.error('Error adding liquidity:', error);
     throw error;
@@ -363,6 +413,49 @@ async function cmdRunFullLifecycle() {
 }
 
 /**
+ * Command to remove liquidity from a position
+ */
+async function cmdRemoveLiquidity() {
+  try {
+    logger.info('Removing liquidity from position...');
+    
+    // Get the active position from state
+    const activePosition = positionState.getActivePosition();
+    if (!activePosition) {
+      throw new Error('No active position found. Please open a position first.');
+    }
+    
+    const { positionAddress } = activePosition;
+    
+    // Get position details before removing liquidity
+    const positionDetails = await fetchPositionDetails(positionAddress);
+    logger.info(`Current position liquidity: ${positionDetails.liquidity.toString()}`);
+    
+    // Ask for confirmation before removing liquidity
+    logger.info('Removing all liquidity from the position...');
+    
+    // Remove all liquidity
+    const result = await removeLiquidity(positionAddress);
+    
+    if (result.txId) {
+      logger.info(`Liquidity removed successfully! Transaction ID: ${result.txId}`);
+      
+      // Get updated position details
+      const updatedDetails = await fetchPositionDetails(positionAddress);
+      logger.info(`Updated position liquidity: ${updatedDetails.liquidity.toString()}`);
+      
+      return { success: true, txId: result.txId };
+    } else {
+      logger.warn('No transaction was executed. This could be because there was no liquidity to remove.');
+      return { success: false, reason: 'No liquidity to remove' };
+    }
+  } catch (error) {
+    logger.error('Error removing liquidity:', error);
+    return { success: false, error: (error as Error).message };
+  }
+}
+
+/**
  * Main function that parses command line arguments and runs the appropriate command
  */
 async function main() {
@@ -391,6 +484,14 @@ async function main() {
         await cmdAddLiquidity();
         break;
         
+      case 'add-liquidity-small':
+        await cmdAddLiquidity(true);
+        break;
+        
+      case 'remove-liquidity':
+        await cmdRemoveLiquidity();
+        break;
+        
       case 'claim-fees':
         await cmdClaimFees();
         break;
@@ -415,14 +516,16 @@ async function main() {
       default:
         logger.info('Orca Liquidity Agent - Command Help');
         logger.info('Available commands:');
-        logger.info('  open-position     - Open a new liquidity position');
-        logger.info('  add-liquidity     - Add liquidity to the active position');
-        logger.info('  claim-fees        - Claim fees from the active position');
-        logger.info('  check-position    - Check the status of the active position');
-        logger.info('  monitor-position  - Start monitoring the active position');
-        logger.info('  close-position    - Close the active position');
-        logger.info('  full-lifecycle    - Run the full position lifecycle demo');
-        logger.info('  help              - Show this help message');
+        logger.info('  open-position       - Open a new liquidity position');
+        logger.info('  add-liquidity       - Add liquidity to the active position');
+        logger.info('  add-liquidity-small - Add a small amount of liquidity (requires less SOL)');
+        logger.info('  remove-liquidity    - Remove liquidity from the active position');
+        logger.info('  claim-fees          - Claim fees from the active position');
+        logger.info('  check-position      - Check the status of the active position');
+        logger.info('  monitor-position    - Start monitoring the active position');
+        logger.info('  close-position      - Close the active position');
+        logger.info('  full-lifecycle      - Run the full position lifecycle demo');
+        logger.info('  help                - Show this help message');
         break;
     }
   } catch (error) {
