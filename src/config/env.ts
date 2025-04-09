@@ -57,6 +57,12 @@ export const config = {
   // Server configuration
   PORT: parseInt(getEnvVar('PORT', false) || '3000', 10),
   HOST: getEnvVar('HOST', false) || '0.0.0.0',
+  
+  // Logging configuration
+  LOG_LEVEL: getEnvVar('LOG_LEVEL', false) || 'info',
+  ENABLE_FILE_LOGGING: getEnvVar('ENABLE_FILE_LOGGING', false) === 'true',
+  LOG_DIRECTORY: getEnvVar('LOG_DIRECTORY', false) || 'logs',
+  LOG_FILENAME: getEnvVar('LOG_FILENAME', false) || 'cashflow.log',
 };
 
 // For backward compatibility

@@ -3,6 +3,8 @@
  * This could be replaced with a more robust logging library in the future
  */
 
+import { config } from '../config/env';
+
 enum LogLevel {
   DEBUG = 0,
   INFO = 1,
@@ -10,8 +12,22 @@ enum LogLevel {
   ERROR = 3,
 }
 
-// Set the minimum log level (can be configured via environment)
-const MIN_LOG_LEVEL = LogLevel.DEBUG;
+// Default log level
+let MIN_LOG_LEVEL = LogLevel.INFO;
+
+/**
+ * Initialize the logger with configuration from environment variables
+ */
+export function initialize(): void {
+  // Set log level from environment if available
+  const logLevel = config.LOG_LEVEL?.toLowerCase();
+  if (logLevel === 'debug') MIN_LOG_LEVEL = LogLevel.DEBUG;
+  if (logLevel === 'info') MIN_LOG_LEVEL = LogLevel.INFO;
+  if (logLevel === 'warn') MIN_LOG_LEVEL = LogLevel.WARN;
+  if (logLevel === 'error') MIN_LOG_LEVEL = LogLevel.ERROR;
+  
+  info('Logger initialized with level: ' + LogLevel[MIN_LOG_LEVEL]);
+}
 
 /**
  * Format the current timestamp for logging
