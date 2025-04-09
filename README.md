@@ -85,6 +85,9 @@ HOST=0.0.0.0
 
 # Database configuration
 DATABASE_URL=postgres://postgres:postgres@timescaledb:5432/cashflow
+
+# For local development without Docker
+# DATABASE_URL=postgres://postgres:postgres@localhost:5433/cashflow
 ```
 
 **Important Security Note**: Never commit your `.env` file with real private keys to version control.
@@ -142,20 +145,23 @@ The application can be run using Docker and Docker Compose, which includes Postg
 
 ```bash
 # Build and start the containers
-docker-compose up -d
+docker compose up -d
 
 # View logs
-docker-compose logs -f
+docker compose logs -f app
+docker compose logs -f timescaledb
 
 # Stop the containers
-docker-compose down
+docker compose down
 ```
 
 The Docker setup includes:
-- Application container running on port 3000
-- TimescaleDB container running on port 5432
+- Application container running on port 3001 (mapped from internal port 3000)
+- TimescaleDB container running on port 5433 (mapped from internal port 5432)
 - Persistent volume for database data
 - Automatic database initialization with required tables and hypertables
+- Health checks to ensure proper service dependencies
+- Position data persistence across container restarts
 
 ### Development
 
@@ -174,11 +180,44 @@ Build the project:
 bun run build
 ```
 
+## System Architecture
+
+The Orca Liquidity Agent is designed with a containerized architecture using Docker and Docker Compose:
+
+### Components
+
+1. **Application Container**
+   - TypeScript application running on Bun runtime
+   - Hono API server for monitoring and management
+   - Position monitoring service that runs at regular intervals
+   - Direct integration with Solana blockchain and Orca Whirlpools
+
+2. **TimescaleDB Container**
+   - PostgreSQL database with TimescaleDB extension for time-series data
+   - Stores position snapshots, wallet balances, and transaction history
+   - Uses hypertables for efficient time-series queries
+   - Persistent volume for data storage across container restarts
+
+3. **Data Flow**
+   - Application connects to Solana RPC endpoint to fetch blockchain data
+   - Position monitoring service fetches position data at regular intervals
+   - Position snapshots are stored in the database for historical analysis
+   - API endpoints expose the data for monitoring and visualization
+
+### Containerization
+
+- Docker Compose orchestrates the containers
+- Health checks ensure proper service dependencies
+- Environment variables for configuration
+- Volume mounts for data persistence
+
 ## Project Structure
 
 ```
 ├── src/
 │   ├── config/       # Configuration and environment variables
+│   ├── data/         # Local data storage for position state
+│   ├── scripts/      # Utility scripts
 │   ├── services/     # Core services for Solana, Orca, and position management
 │   │   ├── database/           # Database services
 │   │   │   ├── index.ts              # Database connection pool
@@ -195,7 +234,7 @@ bun run build
 │   └── server.ts     # Hono API server
 ├── docker-compose.yml # Docker Compose configuration
 ├── Dockerfile        # Docker container definition
-├── init-scripts/     # Database initialization scripts
+├── init-scripts/     # Database initialization scripts for TimescaleDB
 ├── .env              # Environment variables (not committed)
 ├── wallet.json       # Wallet configuration (not committed)
 ├── .eslintrc.json    # ESLint configuration
