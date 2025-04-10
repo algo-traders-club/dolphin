@@ -5,7 +5,7 @@ import { Progress } from '@/components/ui/progress';
 import { PriceChart } from '@/components/charts/price-chart';
 import { LiquidityChart } from '@/components/charts/liquidity-chart';
 import { FeeChart } from '@/components/charts/fee-chart';
-import { ClientNexwaveLogo, ClientThemeToggle } from '@/components/ui/client-components';
+import { ClientCashflowLogo, ClientThemeToggle } from '@/components/ui/client-components';
 
 // Mock data for the dashboard
 const positionData = {

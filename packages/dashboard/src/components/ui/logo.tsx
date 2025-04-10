@@ -1,8 +1,8 @@
 "use client";
 
 import React from 'react';
-import Image from 'next/image';
 import { useTheme } from 'next-themes';
+import { cn } from '@/lib/utils';
 
 interface LogoProps {
   className?: string;
@@ -10,36 +10,37 @@ interface LogoProps {
   variant?: 'light' | 'dark';
 }
 
-export function NexwaveLogo({ className = '', size = 'md', variant }: LogoProps) {
+export function CashflowLogo({ className = '', size = 'md', variant }: LogoProps) {
   const { theme } = useTheme();
   
-  // Fixed dimensions for each size to avoid layout shifts
+  // Font sizes for each size to avoid layout shifts
   const sizeMap = {
-    sm: { height: 32, width: 128 },
-    md: { height: 40, width: 160 },
-    lg: { height: 48, width: 192 },
+    sm: 'text-xl',
+    md: 'text-2xl',
+    lg: 'text-3xl',
   };
   
-  const { height, width } = sizeMap[size];
+  const fontSize = sizeMap[size];
   
-  // If variant is explicitly provided, use it; otherwise use the dark logo
-  // We want to always use the dark logo on light backgrounds and light logo on dark backgrounds
-  const logoVariant = variant || 'dark';
+  // If variant is explicitly provided, use it; otherwise determine based on theme
+  const logoVariant = variant || (theme === 'dark' ? 'light' : 'dark');
   
-  // Ensure we're using the correct logo based on the variant
-  const logoPath = logoVariant === 'light' 
-    ? '/images/nexwave-logo-light.png'
-    : '/images/nexwave-logo-dark.png';
+  // Text color based on variant
+  const textColor = logoVariant === 'light' ? 'text-white' : 'text-black';
   
   return (
-    <div className={`flex items-center ${className}`}>
-      <Image 
-        src={logoPath}
-        alt="Nexwave Logo"
-        width={width}
-        height={height}
-        priority
-      />
+    <div className={cn(
+      'flex items-center',
+      className
+    )}>
+      <div className={cn(
+        fontSize,
+        textColor,
+        'font-bold tracking-tight'
+      )}>
+        <span className={cn("font-extrabold", logoVariant === 'light' ? 'text-white' : 'text-black dark:text-white')}>Cash</span>
+        <span className={logoVariant === 'light' ? 'text-white' : 'text-black dark:text-white'}>flow</span>
+      </div>
     </div>
   );
 }

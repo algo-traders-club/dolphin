@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { useTheme } from 'next-themes';
-import { NexwaveLogo } from './logo';
+import { CashflowLogo } from './logo';
 
 interface ThemeAwareLogoProps {
   className?: string;
@@ -10,7 +10,7 @@ interface ThemeAwareLogoProps {
   defaultVariant?: 'light' | 'dark';
 }
 
-export function ThemeAwareLogo({ 
+export function ThemeAwareCashflowLogo({ 
   className, 
   size = 'md', 
   defaultVariant = 'dark' 
@@ -34,8 +34,8 @@ export function ThemeAwareLogo({
   
   // During SSR and initial mount, use the default variant
   if (!mounted) {
-    return <NexwaveLogo className={className} size={size} variant={defaultVariant} />;
+    return <CashflowLogo className={className} size={size} variant={defaultVariant} />;
   }
   
-  return <NexwaveLogo className={className} size={size} variant={currentVariant} />;
+  return <CashflowLogo className={className} size={size} variant={currentVariant} />;
 }
