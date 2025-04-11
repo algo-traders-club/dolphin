@@ -1,9 +1,61 @@
 import { NextResponse } from 'next/server';
 
-// This would normally fetch data from the agent API
-// For now, we'll return mock data that matches our position details from the memories
-export async function GET() {
-  const positionData = {
+import fs from 'fs';
+import path from 'path';
+
+// Function to load real position data from file
+function loadPositionData() {
+  try {
+    // Try to load position data from file
+    const dataPath = path.join(process.cwd(), '..', '..', 'src', 'data', 'position.json');
+    if (fs.existsSync(dataPath)) {
+      const rawData = fs.readFileSync(dataPath, 'utf8');
+      const posData = JSON.parse(rawData);
+      
+      // Convert position data to the format expected by the API
+      return {
+        address: posData.positionAddress,
+        positionMint: posData.positionMint,
+        whirlpool: posData.whirlpoolAddress,
+        status: posData.rangeStatus || 'ABOVE_RANGE',
+        priceRange: {
+          lower: Math.pow(1.0001, posData.tickLowerIndex) * (10 ** -12),
+          upper: Math.pow(1.0001, posData.tickUpperIndex) * (10 ** -12),
+          current: 0.063, // This would come from the latest snapshot
+        },
+        ticks: {
+          lower: posData.tickLowerIndex,
+          upper: posData.tickUpperIndex,
+        },
+        liquidity: typeof posData.liquidity === 'string' ? 
+          parseFloat(posData.liquidity) / (10 ** 6) : 
+          parseFloat(String(posData.liquidity)) / (10 ** 6),
+        tokens: {
+          SOL: 0.0,
+          USDC: 10.909123, // This would be calculated from liquidity
+        },
+        fees: {
+          earned: parseFloat(posData.feeOwedA || '0') / (10 ** 9) + parseFloat(posData.feeOwedB || '0') / (10 ** 6),
+          claimed: 0.0,
+          pending: parseFloat(posData.feeOwedA || '0') / (10 ** 9) + parseFloat(posData.feeOwedB || '0') / (10 ** 6),
+        },
+        history: {
+          // Generate some history data based on current position
+          // In a real implementation, this would come from the database
+          price: generateHistoryData(0.045, 0.063, 8),
+          liquidity: generateHistoryData(parseFloat(String(posData.liquidity)) / (10 ** 6) * 0.9, 
+                                        parseFloat(String(posData.liquidity)) / (10 ** 6), 8),
+          fees: generateHistoryData(0, parseFloat(posData.feeOwedA || '0') / (10 ** 9) + 
+                                     parseFloat(posData.feeOwedB || '0') / (10 ** 6), 8)
+        }
+      };
+    }
+  } catch (error) {
+    console.error('Error loading position data:', error);
+  }
+  
+  // Fallback to default data if file not found or error occurred
+  return {
     address: 'HSwifErTLV5yiMrgmYfCGxPtwohekJX9CM4T6NJdzptU',
     whirlpool: 'HJPjoWUrhoZzkNfRpHuieeFk9WcZWjwy6PBjZ81ngndJ',
     status: 'ABOVE_RANGE',
@@ -16,49 +68,42 @@ export async function GET() {
       lower: -39104,
       upper: -22976,
     },
-    liquidity: 10.909123,
+    liquidity: 0,
     tokens: {
       SOL: 0.0,
-      USDC: 10.909123,
+      USDC: 0,
     },
     fees: {
-      earned: 0.023,
+      earned: 0,
       claimed: 0.0,
-      pending: 0.023,
+      pending: 0,
     },
     history: {
-      price: [
-        { timestamp: '2025-04-01', price: 0.045 },
-        { timestamp: '2025-04-02', price: 0.048 },
-        { timestamp: '2025-04-03', price: 0.052 },
-        { timestamp: '2025-04-04', price: 0.055 },
-        { timestamp: '2025-04-05', price: 0.058 },
-        { timestamp: '2025-04-06', price: 0.06 },
-        { timestamp: '2025-04-07', price: 0.062 },
-        { timestamp: '2025-04-08', price: 0.063 },
-      ],
-      liquidity: [
-        { timestamp: '2025-04-01', liquidity: 10.0 },
-        { timestamp: '2025-04-02', liquidity: 10.2 },
-        { timestamp: '2025-04-03', liquidity: 10.4 },
-        { timestamp: '2025-04-04', liquidity: 10.5 },
-        { timestamp: '2025-04-05', liquidity: 10.6 },
-        { timestamp: '2025-04-06', liquidity: 10.7 },
-        { timestamp: '2025-04-07', liquidity: 10.8 },
-        { timestamp: '2025-04-08', liquidity: 10.9 },
-      ],
-      fees: [
-        { timestamp: '2025-04-01', fees: 0.0 },
-        { timestamp: '2025-04-02', fees: 0.003 },
-        { timestamp: '2025-04-03', fees: 0.007 },
-        { timestamp: '2025-04-04', fees: 0.01 },
-        { timestamp: '2025-04-05', fees: 0.015 },
-        { timestamp: '2025-04-06', fees: 0.018 },
-        { timestamp: '2025-04-07', fees: 0.021 },
-        { timestamp: '2025-04-08', fees: 0.023 },
-      ],
+      price: generateHistoryData(0.045, 0.063, 8),
+      liquidity: generateHistoryData(0, 0, 8),
+      fees: generateHistoryData(0, 0, 8),
     },
   };
+}
 
+// Helper function to generate history data points
+function generateHistoryData(startValue: number, endValue: number, days: number) {
+  const result = [];
+  const step = (endValue - startValue) / (days - 1);
+  
+  for (let i = 0; i < days; i++) {
+    const date = new Date();
+    date.setDate(date.getDate() - (days - 1) + i);
+    result.push({
+      timestamp: date.toISOString().split('T')[0],
+      [endValue === 0 ? 'price' : endValue === startValue ? 'liquidity' : 'fees']: startValue + (step * i)
+    });
+  }
+  
+  return result;
+}
+
+export async function GET() {
+  const positionData = loadPositionData();
   return NextResponse.json(positionData);
 }

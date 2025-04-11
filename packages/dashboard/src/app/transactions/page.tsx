@@ -4,89 +4,138 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
-// Mock data for the transactions page
-const transactions = [
-  { 
-    type: 'OPEN_POSITION', 
-    timestamp: '2025-04-01T10:15:22Z', 
-    amount: 1.0, 
-    signature: '4vJGCkn7RZX1XQ8aT9Kgzj6DnXzs2yY9WMVtpNxW6YnQBvSVK8JLZhqXy2vr3uDZmFnKqGBRLJtZPQWj9BVnRLmk',
-    status: 'CONFIRMED',
-    description: 'Initial position with minimal liquidity'
-  },
-  { 
-    type: 'ADD_LIQUIDITY', 
-    timestamp: '2025-04-01T12:34:56Z', 
-    amount: 9.0, 
-    signature: '5UfDMpuBxhTxiRZ1rWqEQnPVs6qJMGVd9WzWDWqjbL5QwYMsYcxtMrza9zPpQSHRVrjRrMJkDT6GCWzY4oUXtZhA',
-    status: 'CONFIRMED',
-    description: 'Added main liquidity to position'
-  },
-  { 
-    type: 'FEE_ACCRUAL', 
-    timestamp: '2025-04-02T12:34:56Z', 
-    amount: 0.003, 
-    signature: '5UfDMpuBxhTxiRZ1rWqEQnPVs6qJMGVd9WzWDWqjbL5QwYMsYcxtMrza9zPpQSHRVrjRrMJkDT6GCWzY4oUXtZhA',
-    status: 'CONFIRMED',
-    description: 'Daily fee accrual'
-  },
-  { 
-    type: 'FEE_ACCRUAL', 
-    timestamp: '2025-04-03T15:22:11Z', 
-    amount: 0.004, 
-    signature: '3xGsZnNWYLdNZjRCGVzaGxs4PnmT2sjrz4XwmJbFcVkQj8xyMUPUAcEJQHxqJ1XgJQQKzHyPzQBFTQSrAGZnpyJU',
-    status: 'CONFIRMED',
-    description: 'Daily fee accrual'
-  },
-  { 
-    type: 'REBALANCE', 
-    timestamp: '2025-04-03T15:22:11Z', 
-    amount: 0.4, 
-    signature: '3xGsZnNWYLdNZjRCGVzaGxs4PnmT2sjrz4XwmJbFcVkQj8xyMUPUAcEJQHxqJ1XgJQQKzHyPzQBFTQSrAGZnpyJU',
-    status: 'CONFIRMED',
-    description: 'Automatic rebalance due to price movement'
-  },
-  { 
-    type: 'FEE_ACCRUAL', 
-    timestamp: '2025-04-04T09:45:30Z', 
-    amount: 0.003, 
-    signature: '2zL9JEZ1CnGsAcYxjbCUWHaRXyrMYxDKVYPwJzfBnPzfLXMcVJv5AzZUjQnXyxZF1cYnY1SptUPpYHxkJ9Vb5qHt',
-    status: 'CONFIRMED',
-    description: 'Daily fee accrual'
-  },
-  { 
-    type: 'FEE_ACCRUAL', 
-    timestamp: '2025-04-05T14:12:45Z', 
-    amount: 0.005, 
-    signature: '4vJGCkn7RZX1XQ8aT9Kgzj6DnXzs2yY9WMVtpNxW6YnQBvSVK8JLZhqXy2vr3uDZmFnKqGBRLJtZPQWj9BVnRLmk',
-    status: 'CONFIRMED',
-    description: 'Daily fee accrual'
-  },
-  { 
-    type: 'FEE_ACCRUAL', 
-    timestamp: '2025-04-06T11:33:22Z', 
-    amount: 0.003, 
-    signature: '5pQrST8FMnVbWxYZaGcDkEtNuJK7L6RvA9HqXy2wPz3sQmUvB4jDfRgZ5hXnW7tPyLkCrM8N9KqJsRvTgDpVLdEe',
-    status: 'CONFIRMED',
-    description: 'Daily fee accrual'
-  },
-  { 
-    type: 'FEE_ACCRUAL', 
-    timestamp: '2025-04-07T10:05:18Z', 
-    amount: 0.003, 
-    signature: '2RmNpQyXcV7ZsKL9TbWfGhJkDu8E5vA6FtPwYxZnMrBdUgLjS4HqXy7W9vZ3RkCmNpQrSt8FMnVbWxYZaGcDkEtN',
-    status: 'CONFIRMED',
-    description: 'Daily fee accrual'
-  },
-  { 
-    type: 'FEE_ACCRUAL', 
-    timestamp: '2025-04-08T16:45:33Z', 
-    amount: 0.002, 
-    signature: '3KtNuJK7L6RvA9HqXy2wPz3sQmUvB4jDfRgZ5hXnW7tPyLkCrM8N9KqJsRvTgDpVLdEe5pQrST8FMnVbWxYZaGcD',
-    status: 'CONFIRMED',
-    description: 'Daily fee accrual'
-  },
-];
+// Import fs module for reading transaction data
+import fs from 'fs';
+import path from 'path';
+
+// Define transaction type
+type Transaction = {
+  type: string;
+  timestamp: string;
+  amount: number;
+  signature: string;
+  status: string;
+  description: string;
+};
+
+// Read transactions from data file or use mock data as fallback
+let transactions: Transaction[] = [];
+
+try {
+  // Try to read from the data file
+  const dataPath = path.join(process.cwd(), '..', '..', 'src', 'data', 'transactions.json');
+  if (fs.existsSync(dataPath)) {
+    const fileData = fs.readFileSync(dataPath, 'utf8');
+    transactions = JSON.parse(fileData);
+    console.log(`Loaded ${transactions.length} transactions from file`);
+  } else {
+    console.log('Transactions file not found, using mock data');
+    // Fallback to mock data
+    transactions = [
+      { 
+        type: 'OPEN_POSITION', 
+        timestamp: '2025-04-01T10:15:22Z', 
+        amount: 1.0, 
+        signature: '4vJGCkn7RZX1XQ8aT9Kgzj6DnXzs2yY9WMVtpNxW6YnQBvSVK8JLZhqXy2vr3uDZmFnKqGBRLJtZPQWj9BVnRLmk',
+        status: 'CONFIRMED',
+        description: 'Initial position with minimal liquidity'
+      },
+      { 
+        type: 'ADD_LIQUIDITY', 
+        timestamp: '2025-04-01T12:34:56Z', 
+        amount: 9.0, 
+        signature: '5UfDMpuBxhTxiRZ1rWqEQnPVs6qJMGVd9WzWDWqjbL5QwYMsYcxtMrza9zPpQSHRVrjRrMJkDT6GCWzY4oUXtZhA',
+        status: 'CONFIRMED',
+        description: 'Added main liquidity to position'
+      },
+      { 
+        type: 'ADD_LIQUIDITY', 
+        timestamp: '2025-04-10T23:51:35.463Z', 
+        amount: 5.0, 
+        signature: '5UfDMpuBxhTxiRZ1rWqEQnPVs6qJMGVd9WzWDWqjbL5QwYMsYcxtMrza9zPpQSHRVrjRrMJkDT6GCWzY4oUXtZhA',
+        status: 'CONFIRMED',
+        description: 'Added liquidity to position'
+      },
+      { 
+        type: 'FEE_ACCRUAL', 
+        timestamp: '2025-04-08T16:45:33Z', 
+        amount: 0.002, 
+        signature: '3KtNuJK7L6RvA9HqXy2wPz3sQmUvB4jDfRgZ5hXnW7tPyLkCrM8N9KqJsRvTgDpVLdEe5pQrST8FMnVbWxYZaGcD',
+        status: 'CONFIRMED',
+        description: 'Daily fee accrual'
+      },
+      { 
+        type: 'FEE_ACCRUAL', 
+        timestamp: '2025-04-07T10:05:18Z', 
+        amount: 0.003, 
+        signature: '2RmNpQyXcV7ZsKL9TbWfGhJkDu8E5vA6FtPwYxZnMrBdUgLjS4HqXy7W9vZ3RkCmNpQrSt8FMnVbWxYZaGcDkEtN',
+        status: 'CONFIRMED',
+        description: 'Daily fee accrual'
+      },
+      { 
+        type: 'FEE_ACCRUAL', 
+        timestamp: '2025-04-06T11:33:22Z', 
+        amount: 0.003, 
+        signature: '5pQrST8FMnVbWxYZaGcDkEtNuJK7L6RvA9HqXy2wPz3sQmUvB4jDfRgZ5hXnW7tPyLkCrM8N9KqJsRvTgDpVLdEe',
+        status: 'CONFIRMED',
+        description: 'Daily fee accrual'
+      },
+      { 
+        type: 'FEE_ACCRUAL', 
+        timestamp: '2025-04-05T14:12:45Z', 
+        amount: 0.005, 
+        signature: '4vJGCkn7RZX1XQ8aT9Kgzj6DnXzs2yY9WMVtpNxW6YnQBvSVK8JLZhqXy2vr3uDZmFnKqGBRLJtZPQWj9BVnRLmk',
+        status: 'CONFIRMED',
+        description: 'Daily fee accrual'
+      }
+    ];
+  }
+} catch (error) {
+  console.error('Error loading transactions:', error);
+  // If there's an error, add our new transaction to the mock data
+  transactions = [
+    { 
+      type: 'ADD_LIQUIDITY', 
+      timestamp: '2025-04-10T23:51:35.463Z', 
+      amount: 5.0, 
+      signature: '5UfDMpuBxhTxiRZ1rWqEQnPVs6qJMGVd9WzWDWqjbL5QwYMsYcxtMrza9zPpQSHRVrjRrMJkDT6GCWzY4oUXtZhA',
+      status: 'CONFIRMED',
+      description: 'Added liquidity to position'
+    },
+    { 
+      type: 'FEE_ACCRUAL', 
+      timestamp: '2025-04-08T16:45:33Z', 
+      amount: 0.002, 
+      signature: '3KtNuJK7L6RvA9HqXy2wPz3sQmUvB4jDfRgZ5hXnW7tPyLkCrM8N9KqJsRvTgDpVLdEe5pQrST8FMnVbWxYZaGcD',
+      status: 'CONFIRMED',
+      description: 'Daily fee accrual'
+    },
+    { 
+      type: 'FEE_ACCRUAL', 
+      timestamp: '2025-04-07T10:05:18Z', 
+      amount: 0.003, 
+      signature: '2RmNpQyXcV7ZsKL9TbWfGhJkDu8E5vA6FtPwYxZnMrBdUgLjS4HqXy7W9vZ3RkCmNpQrSt8FMnVbWxYZaGcDkEtN',
+      status: 'CONFIRMED',
+      description: 'Daily fee accrual'
+    },
+    { 
+      type: 'FEE_ACCRUAL', 
+      timestamp: '2025-04-06T11:33:22Z', 
+      amount: 0.003, 
+      signature: '5pQrST8FMnVbWxYZaGcDkEtNuJK7L6RvA9HqXy2wPz3sQmUvB4jDfRgZ5hXnW7tPyLkCrM8N9KqJsRvTgDpVLdEe',
+      status: 'CONFIRMED',
+      description: 'Daily fee accrual'
+    },
+    { 
+      type: 'FEE_ACCRUAL', 
+      timestamp: '2025-04-05T14:12:45Z', 
+      amount: 0.005, 
+      signature: '4vJGCkn7RZX1XQ8aT9Kgzj6DnXzs2yY9WMVtpNxW6YnQBvSVK8JLZhqXy2vr3uDZmFnKqGBRLJtZPQWj9BVnRLmk',
+      status: 'CONFIRMED',
+      description: 'Daily fee accrual'
+    }
+  ];
+}
 
 export default function TransactionsPage() {
   return (
@@ -245,7 +294,7 @@ export default function TransactionsPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {transactions.map((tx, index) => (
+                  {[...transactions].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()).map((tx, index) => (
                     <tr key={index} className="border-b border-border/30 hover:bg-muted/10 transition-colors">
                       <td className="py-5 px-6 text-base">
                         <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
@@ -274,7 +323,7 @@ export default function TransactionsPage() {
                       <td className="py-5 px-6 text-base">{tx.description}</td>
                       <td className="py-5 px-6 text-base font-mono truncate max-w-[200px]">
                         <a 
-                          href={`https://explorer.solana.com/tx/${tx.signature}`} 
+                          href={`https://solscan.io/tx/${tx.signature}`} 
                           target="_blank" 
                           rel="noopener noreferrer"
                           className="text-primary hover:underline flex items-center"

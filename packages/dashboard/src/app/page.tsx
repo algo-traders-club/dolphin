@@ -7,62 +7,184 @@ import { LiquidityChart } from '@/components/charts/liquidity-chart';
 import { FeeChart } from '@/components/charts/fee-chart';
 import { ClientCashflowLogo, ClientThemeToggle } from '@/components/ui/client-components';
 
-// Mock data for the dashboard
-const positionData = {
-  address: 'HSwifErTLV5yiMrgmYfCGxPtwohekJX9CM4T6NJdzptU',
-  whirlpool: 'HJPjoWUrhoZzkNfRpHuieeFk9WcZWjwy6PBjZ81ngndJ',
-  status: 'ABOVE_RANGE',
-  priceRange: {
-    lower: 0.01,
-    upper: 0.05,
-    current: 0.063,
-  },
-  liquidity: 10.909123,
-  tokens: {
-    SOL: 0.0,
-    USDC: 10.909123,
-  },
-  fees: {
-    earned: 0.023,
-    claimed: 0.0,
-    pending: 0.023,
-  },
-  feesEarned: 0.023,
-  availableLiquidity: '10.909123 USDC', // Available for adding liquidity
+import fs from 'fs';
+import path from 'path';
+
+// Define types for position and history data
+type HistoryDataPoint = {
+  timestamp: string;
+  price?: number;
+  liquidity?: number;
+  fees?: number;
 };
 
-const priceHistoryData = [
-  { timestamp: '2025-04-01', price: 0.045 },
-  { timestamp: '2025-04-02', price: 0.048 },
-  { timestamp: '2025-04-03', price: 0.052 },
-  { timestamp: '2025-04-04', price: 0.055 },
-  { timestamp: '2025-04-05', price: 0.058 },
-  { timestamp: '2025-04-06', price: 0.06 },
-  { timestamp: '2025-04-07', price: 0.062 },
-  { timestamp: '2025-04-08', price: 0.063 },
-];
+type PositionData = {
+  address: string;
+  positionMint?: string;
+  whirlpool: string;
+  status: string;
+  priceRange: {
+    lower: number;
+    upper: number;
+    current: number;
+  };
+  liquidity: number | string;
+  tokens: {
+    SOL: number;
+    USDC: number;
+  };
+  fees: {
+    earned: number;
+    claimed: number;
+    pending: number;
+  };
+  feesEarned: number;
+  availableLiquidity: string;
+};
 
-const liquidityHistoryData = [
-  { timestamp: '2025-04-01', liquidity: 10.0 },
-  { timestamp: '2025-04-02', liquidity: 10.2 },
-  { timestamp: '2025-04-03', liquidity: 10.4 },
-  { timestamp: '2025-04-04', liquidity: 10.5 },
-  { timestamp: '2025-04-05', liquidity: 10.6 },
-  { timestamp: '2025-04-06', liquidity: 10.7 },
-  { timestamp: '2025-04-07', liquidity: 10.8 },
-  { timestamp: '2025-04-08', liquidity: 10.9 },
-];
+// Load real position data from file
+function loadPositionData(): PositionData {
+  try {
+    // Try to load position data from file
+    const dataPath = path.join(process.cwd(), '..', '..', 'src', 'data', 'position.json');
+    if (fs.existsSync(dataPath)) {
+      const rawData = fs.readFileSync(dataPath, 'utf8');
+      const posData = JSON.parse(rawData);
+      
+      // Convert position data to the format expected by the UI
+      const liquidityValue = typeof posData.liquidity === 'string' ? 
+        parseFloat(posData.liquidity) / (10 ** 6) : 
+        parseFloat(String(posData.liquidity)) / (10 ** 6);
+      
+      const feesEarned = parseFloat(posData.feeOwedA || '0') / (10 ** 9) + 
+                        parseFloat(posData.feeOwedB || '0') / (10 ** 6);
+      
+      return {
+        address: posData.positionAddress,
+        positionMint: posData.positionMint,
+        whirlpool: posData.whirlpoolAddress,
+        status: posData.rangeStatus || 'ABOVE_RANGE',
+        priceRange: {
+          lower: Math.pow(1.0001, posData.tickLowerIndex) * (10 ** -12),
+          upper: Math.pow(1.0001, posData.tickUpperIndex) * (10 ** -12),
+          current: 0.063, // This would come from the latest snapshot
+        },
+        liquidity: liquidityValue,
+        tokens: {
+          SOL: 0.0,
+          USDC: 10.909123, // This would be calculated from liquidity
+        },
+        fees: {
+          earned: feesEarned,
+          claimed: 0.0,
+          pending: feesEarned,
+        },
+        feesEarned: feesEarned,
+        availableLiquidity: '10.909123 USDC', // Available for adding liquidity
+      };
+    }
+  } catch (error) {
+    console.error('Error loading position data:', error);
+  }
+  
+  // Fallback to default data if file not found or error occurred
+  return {
+    address: 'HSwifErTLV5yiMrgmYfCGxPtwohekJX9CM4T6NJdzptU',
+    whirlpool: 'HJPjoWUrhoZzkNfRpHuieeFk9WcZWjwy6PBjZ81ngndJ',
+    status: 'ABOVE_RANGE',
+    priceRange: {
+      lower: 0.01,
+      upper: 0.05,
+      current: 0.063,
+    },
+    liquidity: 0,
+    tokens: {
+      SOL: 0.0,
+      USDC: 0,
+    },
+    fees: {
+      earned: 0,
+      claimed: 0.0,
+      pending: 0,
+    },
+    feesEarned: 0,
+    availableLiquidity: '0 USDC',
+  };
+}
 
-const feeHistoryData = [
-  { timestamp: '2025-04-01', fees: 0.0 },
-  { timestamp: '2025-04-02', fees: 0.003 },
-  { timestamp: '2025-04-03', fees: 0.007 },
-  { timestamp: '2025-04-04', fees: 0.01 },
-  { timestamp: '2025-04-05', fees: 0.015 },
-  { timestamp: '2025-04-06', fees: 0.018 },
-  { timestamp: '2025-04-07', fees: 0.021 },
-  { timestamp: '2025-04-08', fees: 0.023 },
-];
+// Helper function to generate history data points
+function generateHistoryData(startValue: number, endValue: number, days: number, type: 'price' | 'liquidity' | 'fees'): HistoryDataPoint[] {
+  const result = [];
+  const step = (endValue - startValue) / (days - 1);
+  
+  for (let i = 0; i < days; i++) {
+    const date = new Date();
+    date.setDate(date.getDate() - (days - 1) + i);
+    const dataPoint: HistoryDataPoint = {
+      timestamp: date.toISOString().split('T')[0],
+    };
+    dataPoint[type] = startValue + (step * i);
+    result.push(dataPoint);
+  }
+  
+  return result;
+}
+
+// Load position data
+const positionData = loadPositionData();
+
+// Generate history data based on position data
+const priceHistoryData = generateHistoryData(0.045, 0.063, 8, 'price');
+const liquidityHistoryData = generateHistoryData(
+  typeof positionData.liquidity === 'number' ? positionData.liquidity * 0.9 : 0, 
+  typeof positionData.liquidity === 'number' ? positionData.liquidity : 0, 
+  8, 
+  'liquidity'
+);
+
+const feeHistoryData = generateHistoryData(
+  0,
+  typeof positionData.fees.earned === 'number' ? positionData.fees.earned : 0,
+  8,
+  'fees'
+);
+
+// Add type assertions to ensure the data matches the expected chart format
+type ChartDataPoint<T extends string> = {
+  date: string;
+  [key: string]: string | number;
+};
+
+const formattedPriceData: Array<{date: string; price: number}> = priceHistoryData.map(item => ({
+  date: item.timestamp,
+  price: item.price !== undefined ? item.price : 0
+}));
+
+const formattedLiquidityData: Array<{date: string; liquidity: number}> = liquidityHistoryData.map(item => ({
+  date: item.timestamp,
+  liquidity: item.liquidity !== undefined ? item.liquidity : 0
+}));
+
+// Ensure all fees values are numbers with a type assertion
+const formattedFeeData = feeHistoryData.map(item => ({
+  date: item.timestamp,
+  fees: item.fees !== undefined ? item.fees : 0
+})) as Array<{date: string; fees: number}>;
+
+// Convert to period format for fee charts with explicit typing
+const formattedFeePeriodData = formattedFeeData.map(item => ({
+  period: item.date,
+  fees: item.fees as number // Explicitly assert this is a number
+})) as Array<{period: string; fees: number}>;
+
+// Create a properly typed array for the fee chart
+const typedFeeChartData: Array<{period: string; fees: number}> = 
+  formattedFeePeriodData.map(item => ({
+    period: item.period,
+    fees: Number(item.fees) // Ensure it's a number
+  }));
+
+// We'll use the formatted data for the charts instead of legacy mock data
 
 export default function Home() {
   // Calculate position status indicator
@@ -171,7 +293,7 @@ export default function Home() {
               </CardTitle>
             </CardHeader>
             <CardContent className="pt-4">
-              <div className="text-3xl font-bold tracking-tight">${positionData.liquidity.toFixed(2)}</div>
+              <div className="text-3xl font-bold tracking-tight">${typeof positionData.liquidity === 'number' ? positionData.liquidity.toFixed(2) : parseFloat(String(positionData.liquidity)).toFixed(2)}</div>
               <div className="mt-2 grid grid-cols-2 gap-4">
                 <div className="bg-accent/10 p-2 rounded-md">
                   <p className="text-xs text-muted-foreground">SOL</p>
@@ -193,15 +315,15 @@ export default function Home() {
               </CardTitle>
             </CardHeader>
             <CardContent className="pt-4">
-              <div className="text-3xl font-bold tracking-tight">${positionData.fees.earned.toFixed(3)}</div>
+              <div className="text-3xl font-bold tracking-tight">${typeof positionData.fees.earned === 'number' ? positionData.fees.earned.toFixed(3) : parseFloat(String(positionData.fees.earned)).toFixed(3)}</div>
               <div className="mt-2 grid grid-cols-2 gap-4">
                 <div className="bg-accent/10 p-2 rounded-md">
                   <p className="text-xs text-muted-foreground">Claimed</p>
-                  <p className="text-sm font-medium">${positionData.fees.claimed.toFixed(3)}</p>
+                  <p className="text-sm font-medium">${typeof positionData.fees.claimed === 'number' ? positionData.fees.claimed.toFixed(3) : parseFloat(String(positionData.fees.claimed)).toFixed(3)}</p>
                 </div>
                 <div className="bg-accent/10 p-2 rounded-md">
                   <p className="text-xs text-muted-foreground">Pending</p>
-                  <p className="text-sm font-medium">${positionData.fees.pending.toFixed(3)}</p>
+                  <p className="text-sm font-medium">${typeof positionData.fees.pending === 'number' ? positionData.fees.pending.toFixed(3) : parseFloat(String(positionData.fees.pending)).toFixed(3)}</p>
                 </div>
               </div>
             </CardContent>
@@ -231,7 +353,7 @@ export default function Home() {
               </div>
             </CardHeader>
             <CardContent className="h-80 pt-6">
-              <PriceChart data={priceHistoryData.map(item => ({ date: item.timestamp, price: item.price }))} />
+              <PriceChart data={formattedPriceData} />
             </CardContent>
           </Card>
           
@@ -256,7 +378,7 @@ export default function Home() {
               </div>
             </CardHeader>
             <CardContent className="h-80 pt-6">
-              <LiquidityChart data={liquidityHistoryData.map(item => ({ date: item.timestamp, liquidity: item.liquidity }))} />
+              <LiquidityChart data={formattedLiquidityData} />
             </CardContent>
           </Card>
         </div>
@@ -283,7 +405,7 @@ export default function Home() {
             </div>
           </CardHeader>
           <CardContent className="h-64 pt-6">
-            <FeeChart data={feeHistoryData.map(item => ({ period: item.timestamp, fees: item.fees }))} />
+            <FeeChart data={typedFeeChartData} />
           </CardContent>
         </Card>
         

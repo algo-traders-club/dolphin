@@ -180,7 +180,7 @@ export default function LiquidityPage() {
                       <td className="py-3 px-4 text-sm">{tx.description}</td>
                       <td className="py-3 px-4 text-sm font-mono text-xs truncate max-w-[200px]">
                         <a 
-                          href={`https://explorer.solana.com/tx/${tx.signature}`} 
+                          href={`https://solscan.io/tx/${tx.signature}`} 
                           target="_blank" 
                           rel="noopener noreferrer"
                           className="text-primary hover:underline"

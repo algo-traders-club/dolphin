@@ -2,51 +2,136 @@ import { DashboardLayout } from '@/components/layout/dashboard-layout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 
-// Mock data for the position details page
-const positionData = {
-  address: 'HSwifErTLV5yiMrgmYfCGxPtwohekJX9CM4T6NJdzptU',
-  whirlpool: 'HJPjoWUrhoZzkNfRpHuieeFk9WcZWjwy6PBjZ81ngndJ',
-  status: 'ABOVE_RANGE',
-  priceRange: {
-    lower: 0.01,
-    upper: 0.05,
-    current: 0.063,
-  },
-  ticks: {
-    lower: -39104,
-    upper: -22976,
-  },
-  liquidity: 10.909123,
-  tokens: {
-    SOL: 0.0,
-    USDC: 10.909123,
-  },
-  fees: {
-    earned: 0.023,
-    claimed: 0.0,
-    pending: 0.023,
-  },
-  transactions: [
-    { 
-      type: 'ADD_LIQUIDITY', 
-      timestamp: '2025-04-01T12:34:56Z', 
-      amount: 10.0, 
-      signature: '5UfDMpuBxhTxiRZ1rWqEQnPVs6qJMGVd9WzWDWqjbL5QwYMsYcxtMrza9zPpQSHRVrjRrMJkDT6GCWzY4oUXtZhA' 
-    },
-    { 
-      type: 'REBALANCE', 
-      timestamp: '2025-04-03T15:22:11Z', 
-      amount: 0.4, 
-      signature: '3xGsZnNWYLdNZjRCGVzaGxs4PnmT2sjrz4XwmJbFcVkQj8xyMUPUAcEJQHxqJ1XgJQQKzHyPzQBFTQSrAGZnpyJU' 
-    },
-    { 
-      type: 'CLAIM_FEES', 
-      timestamp: '2025-04-06T09:45:30Z', 
-      amount: 0.015, 
-      signature: '2zL9JEZ1CnGsAcYxjbCUWHaRXyrMYxDKVYPwJzfBnPzfLXMcVJv5AzZUjQnXyxZF1cYnY1SptUPpYHxkJ9Vb5qHt' 
-    },
-  ]
+import fs from 'fs';
+import path from 'path';
+
+// Define types for position data
+type Transaction = {
+  type: string;
+  timestamp: string;
+  amount: number;
+  signature: string;
+  status?: string;
+  description?: string;
 };
+
+type PositionData = {
+  address: string;
+  positionMint?: string;
+  whirlpool: string;
+  status: string;
+  priceRange: {
+    lower: number;
+    upper: number;
+    current: number;
+  };
+  ticks: {
+    lower: number;
+    upper: number;
+  };
+  liquidity: number | string;
+  tokens: {
+    SOL: number;
+    USDC: number;
+  };
+  fees: {
+    earned: number;
+    claimed: number;
+    pending: number;
+  };
+  transactions: Transaction[];
+};
+
+// Load real position data from file or API
+function loadPositionData(): PositionData {
+  try {
+    // Try to load position data from file
+    const dataPath = path.join(process.cwd(), '..', '..', 'src', 'data', 'position.json');
+    if (fs.existsSync(dataPath)) {
+      const rawData = fs.readFileSync(dataPath, 'utf8');
+      const posData = JSON.parse(rawData);
+      
+      // Convert position data to the format expected by the UI
+      return {
+        address: posData.positionAddress,
+        positionMint: posData.positionMint,
+        whirlpool: posData.whirlpoolAddress,
+        status: posData.rangeStatus || 'ABOVE_RANGE',
+        priceRange: {
+          lower: Math.pow(1.0001, posData.tickLowerIndex) * (10 ** -12),
+          upper: Math.pow(1.0001, posData.tickUpperIndex) * (10 ** -12),
+          current: 0.063, // This would come from the latest snapshot
+        },
+        ticks: {
+          lower: posData.tickLowerIndex,
+          upper: posData.tickUpperIndex,
+        },
+        liquidity: typeof posData.liquidity === 'string' ? 
+          parseFloat(posData.liquidity) / (10 ** 6) : 
+          parseFloat(String(posData.liquidity)) / (10 ** 6),
+        tokens: {
+          SOL: 0.0,
+          USDC: 10.909123, // This would be calculated from liquidity
+        },
+        fees: {
+          earned: parseFloat(posData.feeOwedA || '0') / (10 ** 9) + parseFloat(posData.feeOwedB || '0') / (10 ** 6),
+          claimed: 0.0,
+          pending: parseFloat(posData.feeOwedA || '0') / (10 ** 9) + parseFloat(posData.feeOwedB || '0') / (10 ** 6),
+        },
+        transactions: []
+      };
+    }
+  } catch (error) {
+    console.error('Error loading position data:', error);
+  }
+  
+  // Fallback to default data if file not found or error occurred
+  return {
+    address: 'HSwifErTLV5yiMrgmYfCGxPtwohekJX9CM4T6NJdzptU',
+    whirlpool: 'HJPjoWUrhoZzkNfRpHuieeFk9WcZWjwy6PBjZ81ngndJ',
+    status: 'ABOVE_RANGE',
+    priceRange: {
+      lower: 0.01,
+      upper: 0.05,
+      current: 0.063,
+    },
+    ticks: {
+      lower: -39104,
+      upper: -22976,
+    },
+    liquidity: 0,
+    tokens: {
+      SOL: 0.0,
+      USDC: 0,
+    },
+    fees: {
+      earned: 0,
+      claimed: 0.0,
+      pending: 0,
+    },
+    transactions: []
+  };
+}
+
+// Load transactions data
+function loadTransactions(): Transaction[] {
+  try {
+    // Try to load transactions from file
+    const dataPath = path.join(process.cwd(), '..', '..', 'src', 'data', 'transactions.json');
+    if (fs.existsSync(dataPath)) {
+      const rawData = fs.readFileSync(dataPath, 'utf8');
+      return JSON.parse(rawData);
+    }
+  } catch (error) {
+    console.error('Error loading transactions:', error);
+  }
+  
+  return [];
+}
+
+// Load position data and transactions
+const positionData = loadPositionData();
+positionData.transactions = loadTransactions().slice(0, 3); // Get the 3 most recent transactions
 
 export default function PositionPage() {
   return (
@@ -107,7 +192,7 @@ export default function PositionPage() {
               <div className="space-y-6">
                 <div>
                   <h3 className="text-base font-medium text-muted-foreground mb-2">Liquidity</h3>
-                  <p className="text-base">${positionData.liquidity.toFixed(2)}</p>
+                  <p className="text-base">${typeof positionData.liquidity === 'number' ? positionData.liquidity.toFixed(2) : parseFloat(String(positionData.liquidity)).toFixed(2)}</p>
                 </div>
                 <div>
                   <h3 className="text-base font-medium text-muted-foreground mb-2">Token Balances</h3>
@@ -168,7 +253,7 @@ export default function PositionPage() {
                       <td className="py-4 px-4 text-base">${tx.amount.toFixed(3)}</td>
                       <td className="py-4 px-4 text-base font-mono truncate max-w-[200px]">
                         <a 
-                          href={`https://explorer.solana.com/tx/${tx.signature}`} 
+                          href={`https://solscan.io/tx/${tx.signature}`} 
                           target="_blank" 
                           rel="noopener noreferrer"
                           className="text-primary hover:underline"
