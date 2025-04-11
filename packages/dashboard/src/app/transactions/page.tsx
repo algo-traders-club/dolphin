@@ -234,12 +234,20 @@ export default function TransactionsPage() {
               <CardTitle className="text-sm font-medium">Last Transaction</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">
-                {new Date(transactions[0].timestamp).toLocaleDateString()}
-              </div>
-              <p className="text-xs text-muted-foreground mt-1">
-                {transactions[0].type.replace('_', ' ')}
-              </p>
+              {(() => {
+                const latestTx = [...transactions].sort((a, b) => 
+                  new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())[0];
+                return (
+                  <>
+                    <div className="text-2xl font-bold">
+                      {new Date(latestTx.timestamp).toLocaleDateString()}
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {latestTx.type.replace('_', ' ')}
+                    </p>
+                  </>
+                );
+              })()}
             </CardContent>
           </Card>
         </div>
