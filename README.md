@@ -1,4 +1,4 @@
-# Autonomous Orca Liquidity Agent
+# Dolphin - Autonomous Orca Liquidity Agent
 
 A TypeScript-based automated agent for managing liquidity positions in Orca Whirlpools on Solana (both Mainnet and Devnet). This application demonstrates the full lifecycle of creating, managing, and closing a liquidity position, with a modern React dashboard for monitoring and management.
 
@@ -99,17 +99,17 @@ PORT=3000
 HOST=0.0.0.0
 
 # Database configuration
-DATABASE_URL=postgres://postgres:postgres@timescaledb:5432/cashflow
+DATABASE_URL=postgres://postgres:postgres@timescaledb:5432/dolphin
 
 # For local development without Docker
-# DATABASE_URL=postgres://postgres:postgres@localhost:5433/cashflow
+# DATABASE_URL=postgres://postgres:postgres@localhost:5433/dolphin
 ```
 
 **Important Security Note**: Never commit your `.env` file with real private keys to version control.
 
 ## Dashboard
 
-The Cashflow Dashboard provides a modern, responsive interface for monitoring and managing your Orca liquidity positions. Built with Next.js and React 19, it offers real-time insights into your position performance.
+The Dolphin Dashboard provides a modern, responsive interface for monitoring and managing your Orca liquidity positions. Built with Next.js and React 19, it offers real-time insights into your position performance.
 
 ### Dashboard Features
 
@@ -477,3 +477,7 @@ This ensures that your liquidity positions are always tracked correctly, even if
 ---
 
 This project was created using `bun init` in bun v1.1.38. [Bun](https://bun.sh) is a fast all-in-one JavaScript runtime.
+
+---
+
+Copyright ©️ 2025 Algo Traders Club. All rights reserved.

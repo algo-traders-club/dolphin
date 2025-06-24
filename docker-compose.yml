@@ -11,7 +11,7 @@ services:
       - "3001:3000"
     environment:
       - NODE_ENV=production
-      - DATABASE_URL=postgres://postgres:postgres@timescaledb:5432/cashflow
+      - DATABASE_URL=postgres://postgres:postgres@timescaledb:5432/dolphin
       - SOLANA_RPC_URL=${SOLANA_RPC_URL}
       - WALLET_PRIVATE_KEY=${WALLET_PRIVATE_KEY}
       - WHIRLPOOL_PROGRAM_ID=${WHIRLPOOL_PROGRAM_ID}
@@ -54,7 +54,7 @@ services:
     environment:
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-postgres}
       - POSTGRES_USER=${POSTGRES_USER:-postgres}
-      - POSTGRES_DB=${POSTGRES_DB:-cashflow}
+      - POSTGRES_DB=${POSTGRES_DB:-dolphin}
     volumes:
       - timescaledb_data:/var/lib/postgresql/data
       - ./init-scripts:/docker-entrypoint-initdb.d

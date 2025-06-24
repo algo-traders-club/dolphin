@@ -10,7 +10,7 @@ interface LogoProps {
   variant?: 'light' | 'dark';
 }
 
-export function CashflowLogo({ className = '', size = 'md', variant }: LogoProps) {
+export function DolphinLogo({ className = '', size = 'md', variant }: LogoProps) {
   const { theme } = useTheme();
   
   // Font sizes for each size to avoid layout shifts
@@ -38,8 +38,8 @@ export function CashflowLogo({ className = '', size = 'md', variant }: LogoProps
         textColor,
         'font-bold tracking-tight'
       )}>
-        <span className={cn("font-extrabold", logoVariant === 'light' ? 'text-white' : 'text-black dark:text-white')}>Cash</span>
-        <span className={logoVariant === 'light' ? 'text-white' : 'text-black dark:text-white'}>flow</span>
+        <span className={cn("font-extrabold", logoVariant === 'light' ? 'text-white' : 'text-black dark:text-white')}>Dol</span>
+        <span className={logoVariant === 'light' ? 'text-white' : 'text-black dark:text-white'}>phin</span>
       </div>
     </div>
   );

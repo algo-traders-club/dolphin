@@ -86,7 +86,7 @@ Once your container service is created, you'll need to configure your container 
    - Environment variables:
      - `POSTGRES_USER`: `postgres`
      - `POSTGRES_PASSWORD`: `<your-secure-password>`
-     - `POSTGRES_DB`: `cashflow`
+     - `POSTGRES_DB`: `dolphin`
 
 6. Configure public endpoints:
    - For the `app` container, set the port to `3000`

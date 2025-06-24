@@ -1,41 +1,29 @@
 "use client";
 
-import React, { useEffect, useState } from 'react';
 import { useTheme } from 'next-themes';
-import { CashflowLogo } from './logo';
+import { DolphinLogo } from './logo';
 
-interface ThemeAwareLogoProps {
+interface ThemeAwareDolphinLogoProps {
   className?: string;
   size?: 'sm' | 'md' | 'lg';
   defaultVariant?: 'light' | 'dark';
 }
 
-export function ThemeAwareCashflowLogo({ 
-  className, 
-  size = 'md', 
-  defaultVariant = 'dark' 
-}: ThemeAwareLogoProps) {
-  const { theme, systemTheme } = useTheme();
-  const [mounted, setMounted] = useState(false);
-  const [currentVariant, setCurrentVariant] = useState<'light' | 'dark'>(defaultVariant);
+export function ThemeAwareDolphinLogo({
+  className = '',
+  size = 'md',
+  defaultVariant = 'dark'
+}: ThemeAwareDolphinLogoProps) {
+  const { theme, resolvedTheme } = useTheme();
   
-  // After mounting, we can access the theme
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  // Determine the current variant based on the resolved theme
+  const currentVariant = resolvedTheme === 'dark' ? 'light' : 'dark';
   
-  // Update logo variant based on theme changes
-  useEffect(() => {
-    if (!mounted) return;
-    
-    const currentTheme = theme === 'system' ? systemTheme : theme;
-    setCurrentVariant(currentTheme === 'dark' ? 'light' : 'dark');
-  }, [theme, systemTheme, mounted]);
-  
-  // During SSR and initial mount, use the default variant
-  if (!mounted) {
-    return <CashflowLogo className={className} size={size} variant={defaultVariant} />;
+  // If we're still loading the theme, use the default variant
+  if (theme === 'system' && !resolvedTheme) {
+    return <DolphinLogo className={className} size={size} variant={defaultVariant} />;
   }
   
-  return <CashflowLogo className={className} size={size} variant={currentVariant} />;
+  // If we have a resolved theme, use the appropriate variant
+  return <DolphinLogo className={className} size={size} variant={currentVariant} />;
 }

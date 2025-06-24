@@ -5,7 +5,7 @@ import { Progress } from '@/components/ui/progress';
 import { PriceChart } from '@/components/charts/price-chart';
 import { LiquidityChart } from '@/components/charts/liquidity-chart';
 import { FeeChart } from '@/components/charts/fee-chart';
-import { ClientCashflowLogo, ClientThemeToggle } from '@/components/ui/client-components';
+import { ClientDolphinLogo, ClientThemeToggle } from '@/components/ui/client-components';
 
 import fs from 'fs';
 import path from 'path';

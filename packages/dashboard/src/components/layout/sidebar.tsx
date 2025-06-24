@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
 import { cn } from '@/lib/utils';
-import { CashflowLogo } from '@/components/ui/logo';
+import { DolphinLogo } from '@/components/ui/logo';
 
 
 const navigation = [
@@ -23,7 +23,7 @@ export function Sidebar() {
     <div className="hidden md:flex md:w-72 md:flex-col">
       <div className="sticky top-0 h-screen flex flex-col bg-sidebar dark:bg-opacity-95 backdrop-blur-sm">
         <div className="flex items-center h-20 flex-shrink-0 px-6">
-          <CashflowLogo size="lg" variant="dark" />
+          <DolphinLogo size="lg" variant="dark" />
         </div>
         <div className="flex-grow flex flex-col overflow-y-auto pt-2">
           <nav className="flex-1 px-4 py-6 space-y-2">
@@ -49,7 +49,7 @@ export function Sidebar() {
         <div className="flex-shrink-0 flex p-6">
           <div className="flex items-center">
             <div className="space-y-1">
-              <p className="text-base font-medium text-sidebar-foreground">Orca Liquidity Agent</p>
+              <p className="text-base font-medium text-sidebar-foreground">Dolphin Liquidity Agent</p>
               <p className="text-sm text-sidebar-foreground/70">Connected to Solana Mainnet</p>
             </div>
           </div>

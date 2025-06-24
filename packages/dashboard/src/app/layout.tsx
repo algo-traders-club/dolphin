@@ -28,8 +28,8 @@ const jetBrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Nexwave - Orca Liquidity Agent",
-  description: "Modern dashboard for monitoring Orca Liquidity Agent on Solana",
+  title: "Dolphin - Orca Liquidity Agent",
+  description: "Modern dashboard for monitoring Dolphin Liquidity Agent on Solana",
 };
 
 export default function RootLayout({

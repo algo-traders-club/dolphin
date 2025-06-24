@@ -1,7 +1,7 @@
 {
-  "name": "orca-liquidity-agent",
+  "name": "dolphin-liquidity-agent",
   "version": "0.1.0",
-  "description": "Autonomous Orca Liquidity Agent for Solana",
+  "description": "Dolphin - Autonomous Orca Liquidity Agent for Solana",
   "module": "src/server.ts",
   "type": "module",
   "scripts": {

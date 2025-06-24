@@ -52,7 +52,7 @@ export const config = {
   MAX_DAILY_REBALANCES: parseInt(getEnvVar('MAX_DAILY_REBALANCES', false) || '6', 10),
   
   // Database configuration
-  DATABASE_URL: getEnvVar('DATABASE_URL', false) || 'postgres://postgres:postgres@timescaledb:5432/cashflow',
+  DATABASE_URL: getEnvVar('DATABASE_URL', false) || 'postgres://postgres:postgres@timescaledb:5432/dolphin',
   
   // Server configuration
   PORT: parseInt(getEnvVar('PORT', false) || '3000', 10),
@@ -62,7 +62,7 @@ export const config = {
   LOG_LEVEL: getEnvVar('LOG_LEVEL', false) || 'info',
   ENABLE_FILE_LOGGING: getEnvVar('ENABLE_FILE_LOGGING', false) === 'true',
   LOG_DIRECTORY: getEnvVar('LOG_DIRECTORY', false) || 'logs',
-  LOG_FILENAME: getEnvVar('LOG_FILENAME', false) || 'cashflow.log',
+  LOG_FILENAME: getEnvVar('LOG_FILENAME', false) || 'dolphin.log',
   
   // Rate limiting configuration
   RATE_LIMIT_ENABLED: getEnvVar('RATE_LIMIT_ENABLED', false) === 'true',
